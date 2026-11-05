@@ -1,0 +1,11 @@
+node_modules/
+data/
+.DS_Store
+.env
+.env.*
+
+# Internal team material: not part of the public repo
+*.docx
+picture1.png
+ReStart90_队友沟通口径.md
+.claude/

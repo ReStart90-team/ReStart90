@@ -1,0 +1,16 @@
+# Render Blueprint: one Node web service. Demo data is recreated on demand, so no disk is required.
+services:
+  - type: web
+    name: restart90
+    runtime: node
+    plan: free            # free instances sleep after ~15 min idle; use "starter" during judging to avoid cold starts
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: ANTHROPIC_API_KEY
+        sync: false       # set in the Render dashboard; leave empty to run in offline mode
+      - key: RESTART90_AI_LIMIT
+        value: "40"
