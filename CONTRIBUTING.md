@@ -3,7 +3,7 @@
 ## Getting started
 
 ```bash
-git clone https://github.com/Hed1an/ReStart90.git
+git clone https://github.com/ReStart90-team/ReStart90.git
 cd ReStart90
 npm install
 npm start
