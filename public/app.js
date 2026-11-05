@@ -2,7 +2,8 @@
 // Every page is organised by the principles in DESIGN.md; the "Design rationale" toggle shows them in place.
 
 const S = {
-  lang: localStorage.getItem('rs90.lang') || 'zh',
+  // English first; Chinese is one tap away, and ?lang=zh opens a link straight in Chinese.
+  lang: (() => { const q = new URLSearchParams(location.search).get('lang'); return q === 'zh' || q === 'en' ? q : localStorage.getItem('rs90.lang') || 'en'; })(),
   pid: localStorage.getItem('rs90.pid') || 'demo-lin',
   why: localStorage.getItem('rs90.why') === '1',
   meta: null,
@@ -1251,6 +1252,7 @@ async function loadPatient(id, role) {
 async function render() {
   const [, view, id] = (location.hash || '#/').split('/');
   document.documentElement.lang = S.lang === 'zh' ? 'zh-CN' : 'en';
+  document.title = S.lang === 'zh' ? 'ReStart90｜把生活还给自己' : 'ReStart90 — Give life back to yourself';
   document.body.classList.toggle('why-on', S.why);
   try {
     if (!view) return await viewLanding();
