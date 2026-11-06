@@ -4,7 +4,8 @@
 const S = {
   // English first; Chinese is one tap away, and ?lang=zh opens a link straight in Chinese.
   lang: (() => { const q = new URLSearchParams(location.search).get('lang'); return q === 'zh' || q === 'en' ? q : localStorage.getItem('rs90.lang') || 'en'; })(),
-  pid: localStorage.getItem('rs90.pid') || 'demo-lin',
+  // Links and storage from before V0.3 said "demo-lin"; both mean the visitor's own copy of the demo.
+  pid: ((p) => (!p || p === 'demo-lin' ? 'demo' : p))(localStorage.getItem('rs90.pid')),
   why: localStorage.getItem('rs90.why') === '1',
   meta: null,
   data: null,
@@ -18,49 +19,49 @@ const T = {
   navHome: ['首页', 'Home'],
   navPatient: ['患者', 'Patient'],
   navFamily: ['家属', 'Family'],
-  navRehab: ['康复人员', 'Rehab team'],
+  navRehab: ['康复人员', 'Rehab'],
   navMap: ['90天地图', '90-day map'],
-  navNew: ['新建档案', 'New patient'],
+  navNew: ['新建档案', 'New'],
   navWhy: ['为什么有效', 'Why it works'],
   langBtn: ['English', '中文'],
   whyBtn: ['设计依据', 'Design rationale'],
 
   // landing
-  heroTitle: ['把生活<br>还给自己。', 'Give life back<br>to yourself.'],
-  heroLead: ['从出院第 1 天到第 90 天，ReStart90 把医嘱变成患者、家属和康复人员今天各自要做的事，一项一项把生活交还给患者。', 'From day 1 home to day 90, ReStart90 turns the doctor’s orders into what the patient, family and rehab team each do today, handing life back one task at a time.'],
-  heroDemo: ['看看林凯的第 9 天', 'See Kai Lin’s day 9'],
-  heroStart: ['上传出院医嘱', 'Upload discharge orders'],
+  heroTitle: ['把生活<br>还给自己。', 'Take your<br>life back.'],
+  heroLead: ['从出院第一天开始，把康复拆成今天能完成的三件事。', 'From day one at home, turn recovery into three clear steps for today.'],
+  heroDemo: ['看看林凯的第 9 天', 'See Lin Kai’s day 9'],
+  heroStart: ['上传出院资料', 'Upload discharge papers'],
   whyLink: ['为什么这样设计', 'Why it’s designed this way'],
-  tcTitle: ['林凯，回家第 {d} 天', 'Kai Lin, day {d} at home'],
+  tcTitle: ['林凯，回家第 {d} 天', 'Lin Kai, day {d} at home'],
   tcPatient: ['患者做什么', 'Patient does'],
-  tcFamily: ['家属做到哪里停', 'Family stops at'],
+  tcFamily: ['帮的人做到哪里停', 'The helper stops at'],
   tcRehab: ['康复人员', 'Rehab team'],
   tcConfirmed: ['已确认当前等级', 'Current level confirmed'],
   tcWaiting: ['等待确认升级到「{next}」', 'To confirm: move up to “{next}”'],
   demoLife: ['自己洗脸、刷牙', 'Wash my face and brush my teeth'],
   demoWho: ['谁在做', 'Who does it'],
-  demoFamily: ['家属', 'Family'],
-  demoDay: ['林凯，第 {d} 天', 'Kai Lin, day {d}'],
+  demoFamily: ['帮的人', 'Helper'],
+  demoDay: ['林凯，第 {d} 天', 'Lin Kai, day {d}'],
   me: ['我', 'me'],
   hlHere: ['你在这里', 'You are here'],
-  heroWhere: ['林凯在第 {d} 天', 'Kai is on day {d}'],
+  heroWhere: ['林凯在第 {d} 天', 'Lin Kai is on day {d}'],
   heroScope: ['下肢截肢出院后的 90 天', 'The first 90 days home after a lower-limb amputation'],
   scrollHint: ['往下滑', 'Scroll'],
   stTitle: ['同一件事，走四站', 'One task, four stops'],
-  stIntro: ['以「{life}」为例。林凯每往前走一站，家属就退开一步。', 'Take “{life}”. Each stop Kai moves forward, family steps back once more.'],
-  stKai: ['林凯做', 'Kai does'],
-  stFam: ['家属做到这里停', 'Family stops here'],
+  stIntro: ['以「{life}」为例。林凯每往前走一站，帮他的人就退开一步。', 'Take “{life}”. Each stop Lin Kai moves forward, the person helping steps back once more.'],
+  stKai: ['林凯做', 'Lin Kai does'],
+  stFam: ['帮的人做到这里停', 'The helper stops here'],
   sfTitle: ['出现红旗，系统先停下来。', 'When a red flag appears, the system stops first.'],
   sfBody: ['伤口渗液、发烧、疼痛突然加重、跌倒：规则引擎立刻暂停相关任务，停止所有升级，再把数据库里的真实记录整理成一份给医生的摘要。AI 不做判断，也不说"这很正常"。', 'A leaking wound, a fever, a sudden rise in pain, a fall: the rules engine pauses the related tasks at once, stops every upgrade, and turns the recorded data into a summary for the doctor. The AI makes no judgement and never says “that’s normal”.'],
-  sfTicket: ['【联系医生摘要】\n林凯，27 岁，左侧小腿截肢\n出院第 9 天\n触发信号：伤口渗液、有异味\n近 3 天疼痛：3 → 3 → 6（基线 4）\n系统已做：暂停残肢护理、床椅转移；停止所有升级\n本摘要不包含诊断', '[Summary for the doctor]\nKai Lin, 27, left below-knee amputation\nDay 9 after discharge\nSignal: wound leaking, smells\nPain, last 3 days: 3 → 3 → 6 (baseline 4)\nDone: limb care and transfers paused; all upgrades stopped\nThis summary contains no diagnosis'],
+  sfTicket: ['【联系医生摘要】\n林凯，52 岁，左侧小腿截肢\n出院第 9 天\n触发信号：伤口渗液、有异味\n近 3 天疼痛：3 → 3 → 6（基线 4）\n系统已做：暂停残肢护理、床椅转移；停止所有升级\n本摘要不包含诊断', '[Summary for the doctor]\nLin Kai, 52, left below-knee amputation\nDay 9 after discharge\nSignal: wound leaking, smells\nPain, last 3 days: 3 → 3 → 6 (baseline 4)\nDone: limb care and transfers paused; all upgrades stopped\nThis summary contains no diagnosis'],
   sfTry: ['在演示里点「伤口异常」试试', 'Try “Wound problem” in the demo'],
-  hlTap: ['点一站，看看家属退到哪里', 'Tap a stop to see how far family steps back'],
+  hlTap: ['点一站，看看帮的人退到哪里', 'Tap a stop to see how far the helper steps back'],
   hlPassed: ['这一站已经走过', 'Already past this stop'],
   hlAhead: ['还没走到这一站', 'Not at this stop yet'],
-  hlKai: ['林凯', 'Kai'],
-  hlFamily: ['家属', 'Family'],
+  hlKai: ['林凯', 'Lin Kai'],
+  hlFamily: ['帮的人', 'Helper'],
   hlDay90: ['第 90 天', 'Day 90'],
-  fam: ['家属', 'family'],
+  fam: ['帮的人', 'helper'],
 
   gapTitle: ['医院给了方案，回到家却没人分工', 'The hospital wrote a plan. At home, nobody split up the work.'],
   gapIntro: ['截肢之后，医院会讲清楚伤口、复诊和训练。真正回到家，患者和家属面对的是另一套问题。', 'After an amputation, the hospital explains wounds, follow-ups and exercises. At home, patient and family face a different set of questions.'],
@@ -75,7 +76,7 @@ const T = {
   methodTitle: ['每一项生活能力，都走这四步', 'Every part of daily life takes these four steps'],
   methodIntro: ['照顾不会突然停止。在安全的前提下，家属一步一步退后，把生活的主导权交还给患者。', 'Care never stops all at once. As long as it is safe, family steps back one stage at a time and hands the lead back.'],
   dayTitle: ['同一天，三张不同的清单', 'One day, three different lists'],
-  dayIntro: ['以林凯回家第 9 天为例。同一份医嘱，三个人看到的是各自要做的事。', 'Kai Lin’s day 9 at home. One set of orders; each person sees their own job.'],
+  dayIntro: ['以林凯回家第 9 天为例。同一份医嘱，每一层支持看到的是各自要做的事。', 'Lin Kai’s day 9 at home. One set of orders; each layer of support sees its own job.'],
   dayP: ['我今天能自己做什么？', 'What can I do myself today?'],
   dayPItems: [['用镜子看一遍残肢，缠第一圈绷带', '坐轮椅到洗手池，自己刷牙洗脸', '读一条同伴故事'], ['Check the limb in a mirror and wrap the first turn', 'Wheel to the sink and wash up yourself', 'Read one peer story']],
   dayF: ['我该帮多少？什么时候放手？', 'How much do I help? When do I let go?'],
@@ -90,13 +91,13 @@ const T = {
   nots: [
     [['不诊断', '不判断伤情，不替医生排除风险'], ['No diagnosis', 'We never judge an injury or rule out risk for the doctor']],
     [['不改医嘱', '任务只来自医嘱和审核过的模板'], ['No changing orders', 'Tasks only come from orders and reviewed templates']],
-    [['不决定负重', '每一次升级最后都由康复人员确认'], ['No weight-bearing calls', 'Every upgrade ends with the rehab team’s confirmation']],
+    [['不决定负重', '每一次升级最后都由专业人员确认'], ['No weight-bearing calls', 'Every upgrade ends with a professional’s confirmation']],
     [['不承诺治愈', '我们承诺的只是：每一步都安全、看得见'], ['No promise of a cure', 'Only that every step is safe and visible']],
     [['不用愧疚驱动', '没有断签惩罚，没有排行榜'], ['No guilt', 'No broken-streak penalties, no leaderboards']],
   ],
   ctaTitle: ['从第 1 天开始。', 'Start with day 1.'],
-  ctaBody: ['先上传一份出院医嘱生成 90 天计划，或者先看看林凯的第 9 天。', 'Upload discharge orders to get a 90-day plan, or look at Kai Lin’s day 9 first.'],
-  foot: ['演示中的所有病历和数据都是合成的。内容模板 v0.1，待临床审核。', 'All records and data in this demo are synthetic. Content templates v0.1, pending clinical review.'],
+  ctaBody: ['先上传一份出院资料，选择谁和你一起，生成 90 天计划。或者先看看林凯的第 9 天。', 'Upload discharge papers, choose who is with you, and get a 90-day plan. Or look at Lin Kai’s day 9 first.'],
+  foot: ['人物及医疗数据均为合成内容。内容模板 v0.1，待临床审核。', 'Synthetic character and medical data. Content templates v0.1, pending clinical review.'],
 
   // shared
   day: ['第 {d} 天', 'Day {d}'],
@@ -115,10 +116,10 @@ const T = {
   goalBadge: ['你最想恢复的', 'Your goal'],
   goalBadgeOther: ['患者的目标', 'Patient’s goal'],
   source: ['来源：', 'Source: '],
-  familyDoes: ['家属：', 'Family: '],
+  familyDoes: ['帮你的人：', 'Helper: '],
   pausedChip: ['暂停中', 'Paused'],
   startsPhase: ['第 {n} 阶段开始', 'Starts in phase {n}'],
-  sos: ['急救电话：中国 120，加拿大 911。心理危机热线：中国 12356，加拿大和美国 988。', 'Emergency: 911 (Canada/US), 120 (China). Crisis line: call or text 988 (Canada/US), 12356 (China).'],
+  sos: ['急救：拨打当地急救电话。心理危机：拨打当地危机热线（例如加拿大和美国 988）。', 'Emergency: call your local emergency number. Crisis: call a local crisis line (for example, 988 in Canada and the US).'],
   saved: ['已记录', 'Saved'],
   copied: ['已复制', 'Copied'],
   copy: ['复制摘要', 'Copy summary'],
@@ -138,8 +139,8 @@ const T = {
   famNo: ['还不行', 'Not yet'],
   famNoPh: ['还差什么？比如：洗手池太高、缺扶手', 'What’s missing? e.g. the sink is too high, no grab bar'],
   famWait: ['已告诉康复人员，等待最终确认。', 'The rehab team has been told and will make the final call.'],
-  agentName: ['路标', 'Pin'],
-  agentSub: ['我只回答规则和审核过的内容，危险情况直接交给专业人员。', 'I only answer from rules and reviewed content. Anything dangerous goes straight to a professional.'],
+  agentName: ['Riri', 'Riri'],
+  agentSub: ['Riri 不修改医嘱；出现危险信号时，停止相关任务并提示求助。', 'Riri follows discharge instructions and stops when warning signs require professional help.'],
   agToday: ['我今天应该做什么', 'What should I do today'],
   agCant: ['这件事我做不到', 'I can’t do this one'],
   agNormal: ['这个情况正常吗', 'Is this normal'],
@@ -147,7 +148,7 @@ const T = {
   agNormalPh: ['说说你看到或感觉到的情况', 'Describe what you see or feel'],
   agTalkPh: ['想说什么都可以', 'Say anything you like'],
   agSend: ['发送', 'Send'],
-  agFine: ['路标不是医生，也不是心理治疗。', 'Pin is not a doctor and not therapy.'],
+  agFine: ['Riri 不是医生，也不是心理治疗。', 'Riri is not a doctor and not therapy.'],
   agShared: ['已发给康复人员，家属看不到。', 'Sent to the rehab team. Family can’t see it.'],
   agReported: ['已报告，康复人员会收到提醒。', 'Reported. The rehab team has been alerted.'],
   pSubDone: ['今天的三件事都完成了。', 'All three are done today.'],
@@ -293,8 +294,8 @@ const T = {
 
   // wizard
   wzTitle: ['建立 90 天计划', 'Build a 90-day plan'],
-  wzSub: ['前四步由你完成，大约五分钟；第五步由康复人员确认。AI 只读出原文写明的内容，每一条都由你核对。', 'You do the first four steps in about five minutes; the rehab team confirms the fifth. AI only reads what is written, and you check every line.'],
-  wz1: ['上传医嘱', 'Upload'], wz2: ['核对关键信息', 'Check'], wz3: ['家庭环境', 'Home'], wz4: ['90 天目标', '90-day goal'], wz5: ['康复人员确认', 'Rehab confirms'],
+  wzSub: ['前五步由你完成，大约五分钟。如果有康复人员加入，第六步由他确认；没有的话，计划保持最稳妥的等级，等专业人员看过。', 'You do the first five steps in about five minutes. If a rehab worker has joined, they confirm the sixth; if not, the plan stays at the safest level until a professional has seen it.'],
+  wz1: ['上传资料', 'Upload'], wz2: ['核对关键信息', 'Check'], wzWho: ['谁和你一起', 'Who’s with you'], wz3: ['家里的情况', 'Home'], wz4: ['90 天目标', '90-day goal'], wz5: ['专业人员确认', 'A professional confirms'],
   wzPaste: ['粘贴出院小结的文字，或上传文件（.txt / .pdf）', 'Paste the discharge summary, or upload a file (.txt / .pdf)'],
   wzSample: ['使用示例出院小结（合成病例）', 'Use the sample discharge summary (synthetic)'],
   wzFile: ['选择文件', 'Choose a file'],
@@ -314,7 +315,7 @@ const T = {
   next: ['下一步', 'Next'],
   back: ['上一步', 'Back'],
   fName: ['患者姓名', 'Patient name'],
-  fCaregiver: ['主要照顾者（姓名和关系）', 'Main carer (name and relation)'],
+  fCaregiver: ['家属或帮你的人（名字和关系）', 'Family member or helper (name and relation)'],
   fPain: ['现在的疼痛（作为基线）', 'Pain now (the baseline)'],
   fConfidence: ['对自己恢复生活的信心', 'Confidence about getting life back'],
   confWords: [['几乎没有', '不太有', '一半一半', '比较有', '很有'], ['Almost none', 'Not much', 'Half and half', 'Fairly', 'Very']],
@@ -326,11 +327,147 @@ const T = {
   hShower: ['有淋浴椅', 'Shower chair'],
   hThreshold: ['门口有门槛', 'Door sills'],
   hWheel: ['已经有轮椅', 'Has a wheelchair'],
-  fGoals: ['最想先拿回的生活（最多 3 项，由患者本人决定）', 'What you most want back first (up to 3; the patient decides)'],
-  fCustom: ['用自己的话，说一个更大的目标', 'A bigger goal, in your own words'],
-  customPh: ['比如：回店里帮忙、去接孙子放学', 'e.g. Back to helping at the shop; pick up my grandson from school'],
+  fGoals: ['先从哪几件生活拿回（最多 3 项，由你本人决定）', 'Which parts of daily life first (up to 3; you decide)'],
+  fCustom: ['90 天后，你最想重新做到什么？', 'In 90 days, what do you most want to be able to do again?'],
+  customPh: ['比如：再去寨子外看一眼那片梯田', 'e.g. See the terraced fields from the lookout again'],
   create: ['生成 90 天计划', 'Create the 90-day plan'],
-  created: ['90 天计划已生成，等待康复人员确认', 'Plan created; waiting for the rehab team to confirm'],
+  created: ['90 天计划已生成', 'Your 90-day plan is ready'],
+
+  // V0.3: one person can start; family and rehab are optional layers
+  heroAlone: ['一个人也能开始。', 'Start on your own.'],
+  filmLine: ['“如果以后每件事都要靠别人，这还是我的生活吗？”', '“If every part of my life depends on someone else, is it still mine?”'],
+  navLife: ['拿回的生活', 'Life back'],
+  layersTitle: ['一个人也能开始', 'One person can start'],
+  layersIntro: ['多数康复产品默认患者身边已经有家属、康复师和医院。ReStart90 先服务那个独自带着出院单回家的人，家属和康复人员是之后可以加入的两层支持。', 'Most rehab products assume the patient already has family, a therapist and a hospital close by. ReStart90 serves the person who goes home alone with a discharge sheet first. Family and rehab are two layers of support that can join later.'],
+  layer1: ['第一层：你和 Riri', 'Layer 1: you and Riri'],
+  layer1Tag: ['基础模式，永远都在', 'The base. Always there'],
+  layer1Items: [['上传出院资料，选出 90 天里最想拿回的生活', '每天三件最重要的事', '记录疼痛、残肢、伤口和情绪', '危险信号出现时暂停任务，告诉你去哪里求助'], ['Upload discharge papers and choose what you want back in 90 days', 'Three things that matter most each day', 'Record pain, the limb, the wound and mood', 'When a danger sign appears, pause tasks and show where to get help']],
+  layer2: ['第二层：加上家属', 'Layer 2: add family'],
+  layer2Tag: ['可选，由你邀请', 'Optional. You invite them'],
+  layer2Items: [['今天需要帮什么、帮到哪一步', '哪些事不要再替你做', '出现什么情况必须求助', '你的私密倾诉默认不给家属看'], ['What to help with today, and how far', 'What not to do for you any more', 'Which signs mean get help now', 'Your private words stay private by default']],
+  layer3: ['第三层：加上康复人员', 'Layer 3: add a rehab worker'],
+  layer3Tag: ['可选，经你授权', 'Optional. Only with your permission'],
+  layer3Items: [['红旗风险和疼痛、伤口趋势', '长期没有进展的能力', '等待确认的阶段升级', '复诊前的结构化摘要'], ['Red flags, and pain and wound trends', 'Abilities that have stalled', 'Steps waiting for a professional to confirm', 'A structured summary before each follow-up']],
+  layersNote: ['康复人员不用每天盯着患者，只在真正需要专业判断时介入。', 'The rehab worker doesn’t watch every day. They step in when a professional call is really needed.'],
+  whoTitle: ['谁和我一起', 'Who’s with me'],
+  whoRiri: ['Riri：每天都在', 'Riri: here every day'],
+  whoFamily: ['家属或帮你的人', 'Family or a helper'],
+  whoRehab: ['康复人员', 'Rehab worker'],
+  whoJoined: ['第 {d} 天加入：{name}', 'Joined day {d}: {name}'],
+  whoJoinedNow: ['已加入：{name}', 'Joined: {name}'],
+  whoNot: ['还没有加入', 'Not joined yet'],
+  whoInvite: ['邀请', 'Invite'],
+  whoRemove: ['移除', 'Remove'],
+  whoNamePh: ['对方的名字和关系', 'Their name and relation'],
+  whoAdd: ['加入', 'Add'],
+  whoNoteFamily: ['家属只看到今天要帮什么、帮到哪一步、什么时候求助。', 'Family only sees what to help with today, how far, and when to get help.'],
+  whoNoteRehab: ['康复人员看到红旗、趋势和待确认的升级，你可以随时移除。', 'A rehab worker sees red flags, trends and steps to confirm. You can remove them any time.'],
+  whoDemo: ['演示：在真实产品里，对方会收到一条邀请链接。', 'Demo: in the real product they would get an invite link.'],
+  notJoinedFamilyH: ['{name}还没有邀请家属', '{name} hasn’t invited family yet'],
+  notJoinedFamilyP: ['ReStart90 一个人也能用。患者邀请之后，家属才会在这里看到：今天要帮什么、帮到哪一步、哪些事不要替他做、什么时候必须求助。私密的话不会出现在这里。', 'ReStart90 works for one person on their own. Only after the patient invites family will this page show what to help with today, how far, what not to do for them, and when to get help. Private words never appear here.'],
+  notJoinedRehabH: ['{name}还没有授权康复人员', '{name} hasn’t let a rehab worker in'],
+  notJoinedRehabP: ['康复人员只有在患者授权后才能看到红旗、趋势和待确认的升级。', 'A rehab worker sees red flags, trends and steps to confirm only after the patient grants access.'],
+  goInvite: ['去患者页面邀请', 'Invite from the patient page'],
+  rListNote: ['这里只显示授权了康复人员的患者。一个人使用的患者不会出现在这里。', 'Only patients who let a rehab worker in appear here. People using ReStart90 on their own do not.'],
+  planWaitSolo: ['还没有专业人员确认这份计划，所以所有能力都按最稳妥的等级执行。复诊时把摘要给医生看，或者邀请一位康复人员加入。', 'No professional has confirmed this plan yet, so every ability stays at the safest level. Show the summary at your follow-up, or invite a rehab worker to join.'],
+  stepSelf: ['你自己检查了家里', 'You checked the home'],
+  stepPro: ['专业人员确认', 'A professional confirms'],
+  waitSelf: ['你愿意试了。下一步：自己检查一下家里，{name} → {next}', 'You said yes. Next, check your home yourself: {name} → {next}'],
+  selfCheck: ['开始前，确认这三件事', 'Before you try, check three things'],
+  selfChecks: [['刹车能锁住，轮椅和床的位置合适', '要用的东西放在坐着够得到的地方', '地面干燥，通道上没有东西'], ['The brakes lock, and the chair and bed are in the right place', 'What you need is within seated reach', 'The floor is dry and the path is clear']],
+  selfYes: ['都检查过了', 'All checked'],
+  selfNo: ['还没准备好', 'Not ready yet'],
+  waitProSolo: ['你已经准备好了：{name} → {next}。还需要一位专业人员确认，复诊时问，或者邀请康复人员加入。', 'You’re ready: {name} → {next}. A professional still has to confirm it. Ask at your follow-up, or invite a rehab worker.'],
+  resolveSelfH: ['专业人员看过之后', 'After a professional has seen you'],
+  resolveSelfPh: ['写下专业人员怎么说，比如：门诊护士换了药，少量渗液，继续观察', 'Write down what they told you, e.g. clinic nurse changed the dressing, small amount of fluid, keep watching'],
+  resolveSelf: ['已经看过，恢复任务', 'Seen by a professional, resume'],
+  rileyOpen: ['问 Riri', 'Ask Riri'],
+  close: ['关闭', 'Close'],
+  lifeToday: ['今天拿回了 {n} 件生活', 'Today you took back {n} part of daily life'],
+  lifeTodayN: ['今天拿回了 {n} 件生活', 'Today you took back {n} parts of daily life'],
+  lifeToday0: ['今天还没有拿回一件，慢慢来', 'Nothing taken back yet today. Take your time'],
+  // body and wound record
+  bodyLink: ['完整的身体和伤口记录', 'Full body and wound record'],
+  bodyTitle: ['身体和伤口记录', 'Body and wound record'],
+  bodySub: ['只用按钮、量表和照片，再加一句想说的话。系统只整理变化，不做诊断。', 'Buttons, scales and a photo, plus one sentence if you want. The system tracks changes and never diagnoses.'],
+  bPain: ['疼痛', 'Pain'],
+  bPainRising: ['疼痛在持续上升', 'The pain keeps rising'],
+  bPainWhere: ['哪里痛', 'Where it hurts'],
+  bPainImpact: ['对生活的影响', 'How much it gets in the way'],
+  bPhantom: ['幻肢相关感受', 'Phantom limb'],
+  bSensation: ['感觉变化', 'Changes in feeling'],
+  bLimb: ['残肢变化', 'The residual limb'],
+  bWound: ['伤口', 'The wound'],
+  bWoundIntro: ['在和昨天相近的角度和光线下拍一张照片，再回答下面的问题。', 'Take a photo at about the same angle and light as yesterday, then answer the questions below.'],
+  bPhotoBtn: ['拍照或选择照片', 'Take or choose a photo'],
+  bPhotoYesterday: ['第 {d} 天的照片：尽量用同样的角度', 'Day {d} photo: match this angle'],
+  bPhotoToday: ['今天的照片', 'Today’s photo'],
+  bPhotoNone: ['还没有照片', 'No photo yet'],
+  bPhotoFirst: ['这是第一张照片，以后每天和它对比', 'This is the first photo; later ones are compared with it'],
+  bPhotoDark: ['照片有点暗，换个亮一点的地方再拍', 'The photo is dark; try somewhere brighter'],
+  bPhotoBright: ['照片太亮，避开直射的光再拍', 'The photo is too bright; avoid direct light'],
+  bPhotoBlur: ['照片可能有点模糊，拿稳再拍一次', 'The photo may be blurry; hold steady and try again'],
+  bPhotoOk: ['照片清楚', 'The photo is clear'],
+  bPhotoNote: ['AI 只检查照片是否清楚、问题是否填完，不判断伤口。', 'Only checks that the photo is clear and the questions are answered. It never judges the wound.'],
+  bWoundAsk: ['今天伤口有没有这些情况？', 'Does the wound have any of these today?'],
+  bWoundNone: ['都没有', 'None of these'],
+  bGeneral: ['全身危险信号', 'Danger signs'],
+  bMood: ['情绪', 'Mood'],
+  bHopeless: ['我感到绝望', 'I feel hopeless'],
+  bSelfHarm: ['我有伤害自己的想法', 'I have thoughts of harming myself'],
+  bShare: ['把今天的情绪分享给康复人员', 'Share today’s mood with the rehab worker'],
+  bLife: ['生活能力', 'Daily life'],
+  bHelp: ['今天做事时，用了多少帮助？', 'How much help did you use today?'],
+  bHardest: ['哪一步最难？', 'Which step was hardest?'],
+  bWantBack: ['明天最想拿回什么？', 'What do you most want back tomorrow?'],
+  bNote: ['还想说一句什么', 'Anything else, in one sentence'],
+  bSubmit: ['保存今天的记录', 'Save today’s record'],
+  bNeedWound: ['先回答伤口的问题', 'Answer the wound questions first'],
+  bSavedPhoto: ['照片已记录。未进行医学诊断。', 'Photo recorded. No medical diagnosis was made.'],
+  bSaved: ['今天的记录已保存。', 'Today’s record is saved.'],
+  bBack: ['回到今天', 'Back to today'],
+  bDone: ['今天已经记录过。可以随时更新。', 'Already recorded today. You can update it any time.'],
+  // life back page
+  lifeTitle: ['我拿回的生活', 'The life I’ve taken back'],
+  lifeSub: ['从第 1 天到今天，哪些事从“别人替我做”走向了“我自己能做到”。', 'From day 1 to today: what has moved from “someone does it for me” towards “I can do it myself”.'],
+  lifeDay1: ['第 1 天', 'Day 1'],
+  lifeNow: ['今天', 'Today'],
+  lifeDays: ['每天自己做到的生活', 'Daily life done each day'],
+  lifeDaysNote: ['每一格是一天，数字是那天你记录为“做到了”的生活能力。红色是红旗暂停的日子。', 'One bar per day: the daily-life tasks you logged as done. Red marks days paused for a red flag.'],
+  lifeUps: ['每一次交还', 'Each handback'],
+  lifeUpsNone: ['第一次交还会出现在这里。', 'Your first handback will show here.'],
+  lifeNext: ['下一步', 'Next step'],
+  lifeGoal: ['90 天后', 'By day 90'],
+  lifeBy: { rehab: ['专业人员确认', 'confirmed by a professional'], system: ['系统', 'system'], patient: ['你', 'you'], family: ['家属', 'family'] },
+  // film and story
+  filmKicker: ['宣传片', 'The film'],
+  filmTitle: ['下一步', 'The Next Step'],
+  filmBody: ['一位苗族银匠截肢出院，回到寨中。手艺还在，可一杯水、一扇门、一段石阶，都要等别人有空。片中人物和故事都是虚构的。', 'A Miao silversmith comes home to his village after an amputation. His hands still know the craft, but a glass of water, a door and a flight of stone steps now wait for someone else to have time. The person and story are fictional.'],
+  filmSoon: ['影片制作中', 'Film in production'],
+  storyLink: ['林凯的故事', 'Lin Kai’s story'],
+  storyKicker: ['人物故事（虚构）', 'A story (fictional)'],
+  storyH: ['他怕的不是慢，是每一件普通事都要等别人有空。', 'It isn’t being slow he fears. It’s waiting for someone else to have time.'],
+  storyLead: ['林凯，52 岁，黔东南一个苗寨里的银匠。左小腿截肢后，他回到家中，身边没有人能一直陪着。银锤还放在旧木桌上，水杯却放在他够不着的地方。', 'Lin Kai is 52, a silversmith in a Miao village in southeast Guizhou. After a below-knee amputation he comes home with no one who can stay by his side. His silver hammer still lies on the old wooden bench; the glass of water sits just out of reach.'],
+  storyGoal: ['他的 90 天目标：再去寨子外的观景处，看一眼那片梯田。', 'His 90-day goal: get back to the lookout outside the village and see the terraced fields again.'],
+  storyNot: ['ReStart90 不会让他变回从前，也不会替他康复。失去一条腿，改变的是他走路的方式，不是他决定生活的权利。', 'ReStart90 won’t make him who he was before, and it won’t recover for him. Losing a leg changed how he moves, not his right to decide where his life goes next.'],
+  storyBeats: [
+    [['第 1 天', '选择“我现在一个人”，输入目标“再看一眼那片梯田”。Riri 说：今天，我们先从这杯水开始。他把水移到够得到的地方。'], ['第 9 天', '自己拿到了水。今天拿回 1 件生活。'], ['第 21 天', '出现风险信号。系统停止相关任务和升级，提示他求助。'], ['第 41 天', '回到银匠桌旁，把工具一件件整理好。'], ['第 63 天', '重新敲下第一锤。'], ['第 90 天', '借助辅助器具，在平缓安全的观景处站定。梯田第一次完整展开。他没有奔跑，只是重新到达了想去的地方。']],
+    [['Day 1', 'Chooses “I’m on my own now” and types his goal: see the terraced fields again. Riri says: today, we start with the glass. He moves the water within reach.'], ['Day 9', 'Reaches the water himself. One part of daily life taken back today.'], ['Day 21', 'A warning sign appears. The system stops the related tasks and upgrades and tells him to get help.'], ['Day 41', 'Back at the silversmith’s bench, putting his tools in order one by one.'], ['Day 63', 'Strikes the first blow of the hammer again.'], ['Day 90', 'With a walking aid, he stands at a gentle, safe lookout. The terraced fields open up for the first time. He does not run; he has simply got back to where he wanted to be.']],
+  ],
+  storyOpen: ['打开林凯的第 9 天', 'Open Lin Kai’s day 9'],
+  storySynthetic: ['林凯、他的病历和故事都是合成的，用来说明产品，不代表任何真实的人、家庭或村寨。', 'Lin Kai, his records and his story are synthetic. They illustrate the product and do not depict any real person, family or village.'],
+  // wizard: who is with you
+  wzWhoQ: ['谁和你一起完成康复？', 'Who will be with you through recovery?'],
+  wzWhoSub: ['没有人也没关系。一个人也能开始，以后随时可以邀请别人加入。', 'No one is fine. You can start on your own and invite others any time.'],
+  supportModes: {
+    family: [['我有家属', '家人或其他可以帮忙的人'], ['I have family', 'Family or someone else who can help']],
+    rehab: [['我有康复人员', '康复师、护士或社区卫生员'], ['I have a rehab worker', 'A therapist, nurse or community health worker']],
+    both: [['他们都在', '家属和康复人员都可以加入'], ['Both', 'Family and a rehab worker can both join']],
+    solo: [['我现在一个人', '一个人也能开始，先和 Riri 一起'], ['I’m on my own now', 'Start on your own, with Riri']],
+  },
+  fRehabName: ['康复人员（名字和机构）', 'Rehab worker (name and service)'],
+  wzConfirmSolo: ['还没有专业人员加入。计划会先按最稳妥的等级执行；复诊时把摘要给医生看，或者以后邀请康复人员确认。', 'No professional has joined yet. The plan starts at the safest level. Show the summary at your follow-up, or invite a rehab worker later to confirm it.'],
+  wzConfirmRehab: ['计划生成后会送到康复人员那里确认。确认之前，所有能力都按最稳妥的等级执行。', 'Once created, the plan goes to the rehab worker to confirm. Until then, every ability stays at the safest level.'],
 
   // demo
   demo: ['演示', 'Demo'],
@@ -338,7 +475,7 @@ const T = {
   injYellow: ['疼痛上升和情绪低落', 'Pain up, mood low'],
   injRed: ['伤口异常', 'Wound problem'],
   reset: ['重置', 'Reset'],
-  resetConfirm: ['重置所有演示数据，回到林凯的第 9 天？', 'Reset all demo data back to Kai Lin’s day 9?'],
+  resetConfirm: ['重置所有演示数据，回到林凯的第 9 天？', 'Reset all demo data back to Lin Kai’s day 9?'],
   injNote: ['残端下面又渗出黄色的液体，有点味道', 'More yellow fluid under the stump, and a smell'],
   loadErr: ['加载失败：{e}', 'Could not load: {e}'],
 };
@@ -347,7 +484,9 @@ const T = {
 const WHY = {
   pyramid: [['结论先行', '首页第一句就是答案，后面每一段都在支撑它。', '金字塔原理，Minto 1987'], ['Answer first', 'The first line is the answer; every section below supports it.', 'Pyramid Principle, Minto 1987']],
   conflict: [['先讲冲突，再给方法', '情境、冲突、问题、答案。没有冲突，方法就没有分量。', 'SCQA 结构'], ['Conflict before method', 'Situation, complication, question, answer. Without the gap, the method has no weight.', 'SCQA']],
-  story: [['讲一个人，不讲一群人', '一个具体的人比一组统计更能被理解和记住，所以全站都用陈明的故事。', '可识别受害者效应，Small et al. 2007'], ['One person, not a population', 'One specific person is understood and remembered better than statistics, so the whole site follows Chen Ming.', 'Identifiable victim effect, Small et al. 2007']],
+  story: [['讲一个人，不讲一群人', '一个具体的人比一组统计更能被理解和记住，所以全站和宣传片都跟着林凯。', '可识别受害者效应，Small et al. 2007'], ['One person, not a population', 'One specific person is understood and remembered better than statistics, so the site and the film both follow Lin Kai.', 'Identifiable victim effect, Small et al. 2007']],
+  layers: [['先服务独自回家的人', '支持网络暂时不存在时，至少还有一个系统帮他整理信息、守住安全底线。家属和康复人员是可以加入的支持层，不是使用的前提。', 'V0.3 定位'], ['Serve the person who goes home alone first', 'When a support network isn’t there yet, at least one system helps organise information and holds the safety line. Family and rehab are layers that can join, not a condition for using it.', 'V0.3 positioning']],
+  photo: [['照片只用来对比', '同样的角度和光线，让变化看得见。系统只检查照片是否清楚，判断交给专业人员。', '安全边界'], ['Photos are for comparing', 'Same angle and light make change visible. The system only checks the photo is clear; judgement is left to professionals.', 'Safety boundary']],
   scaffold: [['脚手架逐步撤除', '先在支架里做到，再一层层撤掉支架。四级就是撤架子的顺序。', 'Wood, Bruner & Ross 1976'], ['Scaffolding, then fading', 'Succeed with support first, then remove it layer by layer. The four levels are that order.', 'Wood, Bruner & Ross 1976']],
   evidence: [['用研究建立信任', '每个设计都标出处，并说清楚研究能证明什么、不能证明什么。', '可解释性'], ['Trust through evidence', 'Each choice cites its source and says what the research does and does not show.', 'Explainability']],
   trust: [['先说边界', '医疗产品先让人放心，再让人心动。说清楚不做什么，比说做什么更能建立信任。', '风险感知'], ['Boundaries first', 'In health, safety comes before appeal. Saying what we won’t do builds more trust than promises.', 'Risk perception']],
@@ -375,7 +514,7 @@ const WHY = {
   source: [['原文高亮', '每个提取结果都对应原文，看得见来源才敢相信。', '可解释性'], ['Source highlighting', 'Each field maps to the source text; seeing the source earns trust.', 'Explainability']],
   human: [['人在回路', 'AI 只提取，人逐条确认，AI 不越过医疗边界。', '人机协作'], ['Human in the loop', 'AI extracts, a person confirms each line; AI never crosses the clinical line.', 'Human-in-the-loop']],
   agent: [['四扇固定的门', '智能体只开四扇门，回答只来自规则和审核过的内容；问它「这个情况正常吗」，它永远不会回答「正常」。', '安全边界'], ['Four fixed doors', 'The agent opens only four doors and answers only from rules and reviewed content; asked “is this normal?”, it never says yes.', 'Safety boundary']],
-  upflow: [['升级要三个人点头', '系统只提建议；患者决定愿不愿意，家属确认家里条件，康复人员最后拍板。', '自我决定理论；人在回路'], ['Three people say yes', 'The system only suggests; the patient decides, family checks the home, the rehab team makes the final call.', 'Self-determination; human-in-the-loop']],
+  upflow: [['升级要经过三步', '系统只提建议；患者决定愿不愿意，家属（或一个人时由患者自己）检查家里条件，专业人员最后拍板。', '自我决定理论；人在回路'], ['Three steps to move up', 'The system only suggests; the patient decides, family (or the patient, when on their own) checks the home, and a professional makes the final call.', 'Self-determination; human-in-the-loop']],
   route: [['地图，而不是完成率圆环', '90 格路线让人看到自己在整段旅程中的位置，比「今天 0/3」更有方向感。', '目标梯度；赋予进度'], ['A map, not a completion ring', 'A 90-cell route shows where you are on the whole journey; that gives more direction than “0/3 today”.', 'Goal gradient; endowed progress']],
   stall: [['停滞也是例外', '同一等级停 7 天以上会被列出来，专业人员可以及时换方法。', '例外管理'], ['Stalls are exceptions too', 'Seven days at one level gets listed so the team can change approach in time.', 'Management by exception']],
   ownGoal: [['目标用自己的话说', '自己说出的目标更容易坚持。', '自我决定理论'], ['Goals in your own words', 'Goals you state yourself are easier to keep.', 'Self-determination theory']],
@@ -413,7 +552,7 @@ const why = (k) => {
 async function api(path, body) {
   const res = await fetch(`/api${path}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(tr(data.i18n) || data.error || res.statusText);
+  if (!res.ok) throw Object.assign(new Error(tr(data.i18n) || data.error || res.statusText), { status: res.status });
   return data;
 }
 
@@ -540,6 +679,9 @@ const ICONS = {
   map: '<path d="M3 16c3 0 3-5 7-5s4-6 7-6"/><circle cx="3" cy="16" r="1.6"/><circle cx="17" cy="5" r="1.6"/>',
   start: '<path d="M5 2.5h7l3.5 3.5v11.5H5z"/><path d="M10 9v5M7.5 11.5h5"/>',
   why: '<circle cx="10" cy="10" r="7"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r="0.6"/>',
+  life: '<path d="M3 15.5h14"/><path d="M5.5 15.5V11M10 15.5V7.5M14.5 15.5V4"/><path d="M12.5 5.8 14.5 3.8l2 2"/>',
+  riri: '<path d="M4 4.5h12a1.5 1.5 0 0 1 1.5 1.5v6.5A1.5 1.5 0 0 1 16 14H9l-4 3v-3H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M7 9.3h.01M10 9.3h.01M13 9.3h.01"/>',
+  body: '<path d="M10 2.5v15M6 6.5h8"/><circle cx="10" cy="10" r="7.5"/>',
 };
 const icon = (k) => `<svg class="ico" viewBox="0 0 20 20" aria-hidden="true">${ICONS[k]}</svg>`;
 
@@ -549,7 +691,7 @@ function header(active) {
   document.getElementById('top').innerHTML = `<div class="wrap">
     <a class="brand" href="#/">${pin(15)}<b>ReStart90</b><span>${t('brandSub')}</span></a>
     <nav class="roles" aria-label="views">
-      ${link(`#/p/${id}`, 'navPatient', 'p')}${link(`#/f/${id}`, 'navFamily', 'f')}${link(`#/r`, 'navRehab', 'r')}${link(`#/map/${id}`, 'navMap', 'map')}${link('#/start', 'navNew', 'start')}${link('#/why', 'navWhy', 'why')}
+      ${link(`#/p/${id}`, 'navPatient', 'p')}${link(`#/f/${id}`, 'navFamily', 'f')}${link(`#/r`, 'navRehab', 'r')}${link(`#/life/${id}`, 'navLife', 'life')}${link(`#/map/${id}`, 'navMap', 'map')}${link('#/start', 'navNew', 'start')}${link('#/why', 'navWhy', 'why')}
     </nav>
     <div class="tools"><button class="pill-btn" data-act="why" aria-pressed="${S.why}">${t('whyBtn')}</button><button class="pill-btn" data-act="lang">${t('langBtn')}</button></div>
   </div>`;
@@ -577,6 +719,9 @@ function alertBanners(d, role) {
       ${sigs.some((s) => s.id === 'crisis') ? `<p class="small">${t('sos')}</p>` : ''}
       <details${role !== 'patient' ? ' open' : ''}><summary>${t('summaryTitle')}</summary><pre class="summary" id="sum-${a.id}">${E(a.summary)}</pre>
       <div class="row"><button class="btn sm ghost" data-act="copy" data-target="sum-${a.id}">${t('copy')}</button></div></details>
+      ${role === 'patient' && !d.support?.rehab ? `<details class="self-resolve"><summary>${t('resolveSelfH')}</summary>
+        <textarea id="reply-${a.id}" placeholder="${t('resolveSelfPh')}"></textarea>
+        <div class="row"><button class="btn sm" data-act="resolve" data-aid="${a.id}" data-role="patient">${t('resolveSelf')}</button></div></details>` : ''}
     </section>`;
   }).join('');
 }
@@ -640,48 +785,65 @@ function watchStory() {
   story.querySelectorAll('.story-marks i').forEach((m) => io.observe(m));
 }
 
+// V0.3: three layers that join independently. The first one is enough to start.
+function layersGrid() {
+  const L = [['riri', 'layer1', 'layer1Tag', 'layer1Items'], ['f', 'layer2', 'layer2Tag', 'layer2Items'], ['r', 'layer3', 'layer3Tag', 'layer3Items']];
+  return `<div class="layers">${L.map(([ic, h, tag, items], i) => `<article class="layer l${i + 1}">
+      <div class="layer-top"><span class="layer-n num">${i + 1}</span><span class="xr-ico">${icon(ic)}</span></div>
+      <h3>${t(h)}</h3><p class="layer-tag">${t(tag)}</p>
+      <ul>${tt(T[items]).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+    </article>`).join('')}</div>`;
+}
+
 async function viewLanding() {
   header('home');
   demobar(false);
   let day = 9, ability = 'grooming';
   try {
-    const d = await read('/patients/demo-lin?role=patient');
+    const d = await read('/patients/demo?role=patient');
     day = d.day;
     ability = (d.tasks.main.find((x) => x.kind === 'ability' && x.track === 'life') || d.tasks.main.find((x) => x.kind === 'ability'))?.ability || ability;
   } catch (e) { if (e === STALE) throw e; /* the page still works with the default day */ }
   const intro = !S.ui.introDone;
   S.ui.introDone = true;
-  const roles = [['p', 'navPatient', 'dayP', 'dayPItems'], ['f', 'navFamily', 'dayF', 'dayFItems'], ['r', 'navRehab', 'dayR', 'dayRItems']];
   document.getElementById('app').innerHTML = `
   <section class="xhero${intro ? ' intro' : ''}">
     <div class="wrap xhero-in">
       <p class="xhero-scope">${t('heroScope')}</p>
       <h1>${t('heroTitle')}</h1>
       <div class="xhero-foot">
-        <p class="lead">${t('heroLead')}</p>
-        <div class="actions"><a class="btn sun" href="#/p/demo-lin" data-act="use-demo">${t('heroDemo')}</a><a class="btn outline-light" href="#/start">${t('heroStart')}</a></div>
+        <div><p class="lead">${t('heroLead')}</p><p class="lead alone">${t('heroAlone')}</p></div>
+        <div class="actions"><a class="btn sun" href="#/p/demo" data-act="use-demo">${t('heroDemo')}</a><a class="btn outline-light" href="#/start">${t('heroStart')}</a></div>
       </div>
       ${why('pyramid')}
     </div>
     <div class="wrap">${heroRoute(day)}</div>
     <a class="scroll-hint" href="#story" data-act="to-story">${t('scrollHint')}</a>
   </section>
-  ${storySection(ability)}
+  ${filmSection()}
   <section class="xroles"><div class="wrap">
-    <h2>${t('dayTitle')}</h2><p class="xintro">${t('dayIntro')}</p>
-    <div class="xroles-grid">${roles.map(([k, n, q, items]) => `<article><div class="xr-ico">${icon(k)}</div><h3>${t(n)}</h3><p class="q">${t(q)}</p><ul>${tt(T[items]).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></article>`).join('')}</div>
+    <h2>${t('layersTitle')}</h2><p class="xintro">${t('layersIntro')}</p>
+    ${layersGrid()}
+    <p class="layers-note">${t('layersNote')}</p>
+    ${why('layers')}
+  </div></section>
+  ${storySection(ability)}
+  <section class="xentry"><div class="wrap xentry-in">
+    <div><p class="kicker">${t('storyKicker')}</p><h2>${t('storyH')}</h2><p>${t('storyGoal')}</p></div>
+    <a class="btn sun" href="#/story">${t('storyLink')} →</a>
     ${why('story')}
   </div></section>
   <section class="xsafe"><div class="wrap xsafe-grid">
-    <div><h2>${t('sfTitle')}</h2><p>${t('sfBody')}</p><a class="btn outline-light" href="#/p/demo-lin" data-act="use-demo">${t('sfTry')}</a></div>
+    <div><h2>${t('sfTitle')}</h2><p>${t('sfBody')}</p><a class="btn outline-light" href="#/p/demo" data-act="use-demo">${t('sfTry')}</a></div>
     <pre class="ticket">${esc(t('sfTicket'))}</pre>
   </div></section>
   <section class="xcta"><div class="wrap">
     <h2>${t('ctaTitle')}</h2><p>${t('ctaBody')}</p>
-    <div class="actions"><a class="btn" href="#/start">${t('heroStart')}</a><a class="btn ghost" href="#/p/demo-lin" data-act="use-demo">${t('heroDemo')}</a><a class="btn ghost" href="#/why">${t('whyLink')}</a></div>
+    <div class="actions"><a class="btn" href="#/start">${t('heroStart')}</a><a class="btn ghost" href="#/p/demo" data-act="use-demo">${t('heroDemo')}</a><a class="btn ghost" href="#/why">${t('whyLink')}</a></div>
   </div></section>
   <footer class="foot"><div class="wrap">${t('foot')}</div></footer>`;
   watchStory();
+  wireFilm();
 }
 
 // ---------- why it works (moved off the landing page) ----------
@@ -703,10 +865,9 @@ function viewWhy() {
     ${why('scaffold')}
   </div></section>
   <section class="band"><div class="wrap">
-    <h2>${t('dayTitle')}</h2><p class="intro">${t('dayIntro')}</p>
-    <div class="xroles-grid">
-      ${[['p', 'navPatient', 'dayP', 'dayPItems'], ['f', 'navFamily', 'dayF', 'dayFItems'], ['r', 'navRehab', 'dayR', 'dayRItems']].map(([k, n, q, items]) => `<article><div class="xr-ico">${icon(k)}</div><h3>${t(n)}</h3><p class="q">${t(q)}</p><ul>${tt(T[items]).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></article>`).join('')}
-    </div>
+    <h2>${t('layersTitle')}</h2><p class="intro">${t('layersIntro')}</p>
+    ${layersGrid()}
+    ${why('layers')}
   </div></section>
   <section class="band"><div class="wrap">
     <h2>${t('sciTitle')}</h2><p class="intro">${t('sciIntro')}</p>
@@ -721,7 +882,7 @@ function viewWhy() {
   </div></section>
   <section class="cta"><div class="wrap">
     <h2>${t('ctaTitle')}</h2><p>${t('ctaBody')}</p>
-    <div class="actions"><a class="btn light" href="#/start">${t('heroStart')}</a><a class="btn outline-light" href="#/p/demo-lin" data-act="use-demo">${t('heroDemo')}</a></div>
+    <div class="actions"><a class="btn light" href="#/start">${t('heroStart')}</a><a class="btn outline-light" href="#/p/demo" data-act="use-demo">${t('heroDemo')}</a></div>
     ${why('fresh')}
   </div></section>
   <footer class="foot"><div class="wrap">${t('foot')}</div></footer>`;
@@ -731,7 +892,7 @@ function viewWhy() {
 function checkinPanel(d) {
   const ck = d.checkin;
   if (ck && !S.ui.ckEdit) {
-    return `<section class="panel"><div class="checkin-done"><span>${t('ckDone', { p: ck.pain ?? '-', m: moodWord(ck.mood) })}</span><button class="btn sm ghost" data-act="ck-edit">${t('ckEdit')}</button></div>${S.ui.ckResult || ''}</section>`;
+    return `<section class="panel"><div class="checkin-done"><span>${t('ckDone', { p: ck.pain ?? '-', m: moodWord(ck.mood) })}</span><span class="row" style="margin:0"><a class="btn sm ghost" href="#/body/${S.pid}">${t('bodyLink')}</a><button class="btn sm ghost" data-act="ck-edit">${t('ckEdit')}</button></span></div>${S.ui.ckResult || ''}</section>`;
   }
   const f = (S.ui.ck ||= { pain: ck?.pain ?? d.baselinePain, mood: ck?.mood ?? 3, wound: ck?.wound || 'normal', symptoms: ck?.symptoms || [], fever: !!ck?.fever, fall: !!ck?.fall, note: '', private: false });
   const sigs = ['soundFoot', 'chest', 'crisis'].map((id) => S.meta.signals.find((s) => s.id === id));
@@ -755,7 +916,7 @@ function checkinPanel(d) {
           <div class="checks"><label><input type="checkbox" data-ck="private"${f.private ? ' checked' : ''}> ${t('private')}</label></div></div>
       </div>
     </details>
-    <div style="margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn" data-act="checkin">${t('sendCk')}</button><span class="sos" style="margin:0">${t('sos')}</span></div>
+    <div style="margin-top:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn" data-act="checkin">${t('sendCk')}</button><a class="btn ghost" href="#/body/${S.pid}">${icon('body')}${t('bodyLink')}</a><span class="sos" style="margin:0">${t('sos')}</span></div>
     ${S.ui.ckResult || ''}
   </section>`;
 }
@@ -786,9 +947,10 @@ function taskCard(task, d, { main = true, first = {} } = {}) {
   </article>`;
 }
 
-function upSteps(p) {
+function upSteps(p, d = S.data) {
   const st = (v) => (v === 1 ? 'ok' : v === 0 ? 'no' : '');
-  return `<div class="steps3"><span class="${st(p.patient_ok)}">${t('stepPatient')}</span><span class="${st(p.family_ok)}">${t('stepFamily')}</span><span>${t('stepRehab')}</span></div>`;
+  const self = p.home_by === 'self' || (p.home_by == null && !d?.support?.family);
+  return `<div class="steps3"><span class="${st(p.patient_ok)}">${t('stepPatient')}</span><span class="${st(p.family_ok)}">${t(self ? 'stepSelf' : 'stepFamily')}</span><span>${t(d?.support?.rehab ? 'stepRehab' : 'stepPro')}</span></div>`;
 }
 
 function patientAsks(d) {
@@ -800,7 +962,16 @@ function patientAsks(d) {
         <div class="row"><button class="btn sun" data-act="decide" data-pid="${p.id}" data-decision="approve" data-role="patient">${t('askYes')}</button><button class="btn ghost" data-act="decide" data-pid="${p.id}" data-decision="decline" data-role="patient">${t('askLater')}</button></div>
         ${upSteps(p)}${why('autonomy')}</section>`;
     }
-    return `<section class="banner ${p.status === 'held' ? 'amber' : 'calm'}"><p style="margin:0">${p.status === 'held' ? t('heldBy', { why: E(p.note) }) : t(p.family_ok == null ? 'waitFamily' : p.family_ok === 0 ? 'waitFamilyNo' : 'waitRehab', { name: esc(name), next: esc(next) })}</p>${upSteps(p)}</section>`;
+    // On their own, the patient checks the home themselves (V0.3).
+    if (!d.support.family && p.family_ok == null && p.status !== 'held') {
+      return `<section class="banner sun"><h3>${t('waitSelf', { name: esc(name), next: esc(next) })}</h3>
+        <p class="small" style="margin:8px 0 6px"><b>${t('selfCheck')}</b></p>
+        <ul class="selfcheck">${tt(T.selfChecks).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+        <div class="row"><button class="btn sun" data-act="decide" data-pid="${p.id}" data-decision="approve" data-role="patient" data-home="1">${t('selfYes')}</button><button class="btn ghost" data-act="decide" data-pid="${p.id}" data-decision="decline" data-role="patient" data-home="1">${t('selfNo')}</button></div>
+        ${upSteps(p)}${why('upflow')}</section>`;
+    }
+    const key = p.family_ok == null ? 'waitFamily' : p.family_ok === 0 ? 'waitFamilyNo' : d.support.rehab ? 'waitRehab' : 'waitProSolo';
+    return `<section class="banner ${p.status === 'held' ? 'amber' : 'calm'}"><p style="margin:0">${p.status === 'held' ? t('heldBy', { why: E(p.note) }) : t(key, { name: esc(name), next: esc(next) })}</p>${upSteps(p)}</section>`;
   }).join('');
 }
 
@@ -823,7 +994,7 @@ function agentPanel(d) {
   const r = a.res;
   const peer = r?.peer ? S.meta.peers[d.day % S.meta.peers.length] : null;
   return `<section class="agent" id="agent">
-    <div class="ah">${pin(22)}<div><b>${t('agentName')}</b><div class="small muted">${t('agentSub')}</div></div></div>
+    <div class="ah"><span class="riri-mark" aria-hidden="true">${icon('riri')}</span><div><b>${t('agentName')}</b><div class="small muted">${t('agentSub')}</div></div></div>
     <div class="doors">${door('today', 'agToday')}${door('cant', 'agCant')}${door('normal', 'agNormal')}${door('talk', 'agTalk')}</div>
     ${a.intent === 'normal' || a.intent === 'talk' ? `<label class="f" style="margin:12px 0 0"><span class="sr">${t(a.intent === 'normal' ? 'agNormalPh' : 'agTalkPh')}</span><textarea id="ag-text" placeholder="${t(a.intent === 'normal' ? 'agNormalPh' : 'agTalkPh')}" style="min-height:64px">${esc(a.text || '')}</textarea></label><div style="margin-top:8px"><button class="btn sm" data-act="agent-send">${t('agSend')}</button></div>` : ''}
     ${r ? `<div class="bubble${r.danger ? ' danger' : ''}" role="status">${E(r.reply)}
@@ -838,6 +1009,30 @@ function agentPanel(d) {
   </section>`;
 }
 
+// V0.3: Riri is always there; family and rehab are layers the patient invites or removes.
+function whoPanel(d) {
+  const sp = d.support;
+  const layer = (k, label, note) => {
+    const on = sp[k];
+    const nm = sp[`${k}Name`];
+    const dd = sp[`${k}Day`];
+    const open = S.ui.invite === k;
+    return `<div class="who-row${on ? ' on' : ''}">
+      <span class="who-dot" aria-hidden="true">${icon(k === 'family' ? 'f' : 'r')}</span>
+      <div class="who-txt"><b>${t(label)}</b><span class="small muted">${on ? (dd ? t('whoJoined', { d: dd, name: E(nm) }) : t('whoJoinedNow', { name: E(nm) })) : t('whoNot')}</span>
+        ${open ? `<div class="who-form"><input type="text" id="inv-${k}" placeholder="${t('whoNamePh')}" aria-label="${t('whoNamePh')}"><button class="btn sm" data-act="support" data-layer="${k}" data-action="invite">${t('whoAdd')}</button></div><p class="small muted" style="margin:6px 0 0">${t(note)} ${t('whoDemo')}</p>` : ''}
+      </div>
+      ${on ? `<button class="btn sm ghost" data-act="support" data-layer="${k}" data-action="remove">${t('whoRemove')}</button>` : open ? '' : `<button class="btn sm ghost" data-act="invite-open" data-layer="${k}">${t('whoInvite')}</button>`}
+    </div>`;
+  };
+  return `<section class="panel who"><h3>${t('whoTitle')}</h3>
+    <div class="who-row on riri"><span class="who-dot" aria-hidden="true">${icon('riri')}</span><div class="who-txt"><b>${t('whoRiri')}</b></div></div>
+    ${layer('family', 'whoFamily', 'whoNoteFamily')}${layer('rehab', 'whoRehab', 'whoNoteRehab')}
+    ${why('layers')}</section>`;
+}
+
+const lifeTodayLine = (n) => (n ? t(n === 1 ? 'lifeToday' : 'lifeTodayN', { n }) : t('lifeToday0'));
+
 function abilityList(d, role) {
   return d.abilities.map((a) => `<div class="abil${a.active ? '' : ' inactive'}">
     <div class="nm"><b>${E(role === 'patient' ? a.life : a.name)}</b>${a.active ? (a.paused ? `<span class="chip red">${t('pausedChip')}</span>` : a.goal ? `<span class="chip goal">${t(role === 'patient' ? 'goalBadge' : 'goalBadgeOther')}</span>` : '') : `<span class="small muted">${t('startsPhase', { n: a.startsPhase })}</span>`}</div>
@@ -850,6 +1045,8 @@ async function viewPatient(id) {
   await loadPatient(id, 'patient');
   const d = S.data;
   const map = await read(`/patients/${id}/map`);
+  // Day one, nothing recorded yet: Riri speaks first (promo script V1.0).
+  if (d.day === 1 && !d.checkin && !d.checkins.length && !S.ui.agent) S.ui.agent = { intent: 'welcome', res: await api(`/patients/${id}/agent`, { intent: 'welcome' }) };
   header('p');
   demobar(true);
   const tasks = d.tasks;
@@ -865,11 +1062,11 @@ async function viewPatient(id) {
         ${why('fresh')}</div>
       <div class="head-stats" style="align-items:flex-end">
         <div class="route-wrap"><div class="label"><span>${t('routeLbl')}</span><span class="num">${d.day}/90</span></div>${routeStrip(map)}</div>
-        <div class="stat"><b class="num">${t('times', { n: d.handedBack })}</b><span>${t('handedBack')}</span></div>
+        <a class="stat life-stat" href="#/life/${id}"><b class="num">${d.lifeToday}</b><span>${lifeTodayLine(d.lifeToday)}</span></a>
       </div>
     </div>
     ${why('route')}
-    ${d.planConfirmed ? '' : `<section class="banner amber"><p style="margin:0">${t('planWait')}</p></section>`}
+    ${d.planConfirmed ? '' : `<section class="banner amber"><p style="margin:0">${t(d.support.rehab ? 'planWait' : 'planWaitSolo')}</p></section>`}
     ${alertBanners(d, 'patient')}
     ${holdBanner(d)}
     ${patientAsks(d)}
@@ -884,6 +1081,7 @@ async function viewPatient(id) {
       </div>
       <aside>
         ${agentPanel(d)}
+        ${whoPanel(d)}
         <section class="panel"><h3>${t('milesTitle')}</h3>
           ${d.milestones.slice(0, 3).map((m) => `<div class="mile"><b>${E(m.name)}</b><span class="pips">${Array.from({ length: m.need }, (_, i) => `<i class="${i < m.streak ? 'on' : ''}"></i>`).join('')}</span><span class="s">${esc(LV(m.level))} → ${esc(LV(m.to))}${C()}${m.left === 0 || m.pending ? t('mileReady') : t('mileLeft', { n: m.left })}</span></div>`).join('') || `<p class="empty">-</p>`}
           ${why('gradient')}
@@ -895,7 +1093,14 @@ async function viewPatient(id) {
 }
 
 // ---------- family ----------
+// Family and rehab views ask first whether the patient has let that layer in, so a closed door is a page, not an error.
+async function layerOpen(id, layer) {
+  const d = await read(`/patients/${encodeURIComponent(id)}?role=patient`);
+  return d.support?.[layer];
+}
+
 async function viewFamily(id) {
+  if (!(await layerOpen(id, 'family'))) return viewNotJoined('f', id);
   await loadPatient(id, 'family');
   const d = S.data;
   header('f');
@@ -970,6 +1175,25 @@ function familyTask(x, d, first) {
 
 const noteItem = (n) => `<div class="it"><div class="who">${t('day', { d: n.day })}　${tt(T.by[n.role] || T.by.system)}</div>${E(n.text)}</div>`;
 
+// V0.3: family and rehab see a patient only after the patient lets them in.
+async function viewNotJoined(view, id) {
+  S.data = null;
+  let name = '';
+  try { const d = await read(`/patients/${encodeURIComponent(id)}?role=patient`); name = pname(d); S.data = d; } catch (e) { if (e === STALE) throw e; }
+  header(view);
+  demobar(false);
+  const fam = view === 'f';
+  document.getElementById('app').innerHTML = `<div class="page"><div class="wrap">
+    <section class="not-joined">
+      <div class="nj-ico" aria-hidden="true">${icon(fam ? 'f' : 'r')}</div>
+      <h1>${t(fam ? 'notJoinedFamilyH' : 'notJoinedRehabH', { name: esc(name) })}</h1>
+      <p>${t(fam ? 'notJoinedFamilyP' : 'notJoinedRehabP')}</p>
+      <div class="actions"><a class="btn" href="#/p/${esc(id)}">${t('goInvite')}</a></div>
+      ${why('layers')}
+    </section>
+  </div></div>`;
+}
+
 // ---------- rehab ----------
 async function viewRehabList() {
   header('r');
@@ -980,11 +1204,27 @@ async function viewRehabList() {
     <div class="head"><div><h1>${t('rTitle')}</h1><p class="sub">${t('rSub')}</p></div>
       <div class="head-stats"><div class="stat red"><b class="num">${sum('openAlerts')}</b><span>${t('rUrgent')}</span></div><div class="stat amber"><b class="num">${sum('pending')}</b><span>${t('rPending')}</span></div><div class="stat"><b class="num">${sum('overHelp')}</b><span>${t('rOver')}</span></div></div></div>
     ${why('exception')}
+    <p class="small muted">${t('rListNote')}</p>
     <section class="panel"><table class="list"><thead><tr><th>${t('colPatient')}</th><th>${t('colDay')}</th><th>${t('colAuto')}</th><th>${t('rUrgent')}</th><th>${t('rPending')}</th><th>${t('rOver')}</th><th></th></tr></thead>
     <tbody>${list.map((p) => `<tr><td><b>${esc((S.lang === 'en' && p.nameEn) || p.name)}</b></td><td>${t('day', { d: p.day })}<div class="small muted">${E(p.phase.name)}</div></td><td class="num">${p.autonomy}%</td>
       <td>${p.openAlerts ? `<span class="chip red">${p.openAlerts}</span>` : '0'}</td><td>${p.pending + (p.planPending ? 1 : 0) ? `<span class="chip amber">${p.pending + (p.planPending ? 1 : 0)}</span>` : '0'}</td><td>${p.overHelp}</td>
       <td><a class="btn sm ghost" href="#/r/${p.id}" data-act="pick" data-id="${p.id}">${t('open')}</a></td></tr>`).join('')}</tbody></table></section>
   </div></div>`;
+}
+
+// What the patient recorded today, listed as answers. Nothing here is interpreted.
+function bodyToday(d) {
+  const b = d.checkin?.body;
+  const M = S.meta.body;
+  const names = (k) => (b?.[k] || []).map((x) => M[k].find((o) => o.id === x)).filter(Boolean).map(opt);
+  const rows = b ? [['bPhantom', names('phantom')], ['bSensation', names('sensation')], ['bLimb', names('limb')], ['bWound', b.woundAnswered && !b.woundChecks.length ? [t('bWoundNone')] : names('woundChecks')]].filter(([, v]) => v.length) : [];
+  const photo = d.checkin?.photo;
+  const last = d.lastPhoto;
+  if (!rows.length && !photo && !last) return '';
+  return `<section class="panel"><h3>${t('bodyTitle')}</h3>
+    ${rows.map(([k, v]) => `<p class="small" style="margin:0 0 6px"><b>${t(k)}</b>${C()}${v.join(SEMI())}</p>`).join('')}
+    ${photo || last ? `<div class="photo-pair sm">${last ? `<figure><img src="${last.photo}" alt=""><figcaption>${t('day', { d: last.day })}</figcaption></figure>` : ''}${photo ? `<figure><img src="${photo}" alt=""><figcaption>${t('day', { d: d.day })}</figcaption></figure>` : ''}</div><p class="small muted">${t('bPhotoNote')}</p>` : ''}
+  </section>`;
 }
 
 function spark(points, key, max, color) {
@@ -996,6 +1236,7 @@ function spark(points, key, max, color) {
 }
 
 async function viewRehab(id) {
+  if (!(await layerOpen(id, 'rehab'))) return viewNotJoined('r', id);
   await loadPatient(id, 'rehab');
   const d = S.data;
   header('r');
@@ -1056,6 +1297,7 @@ async function viewRehab(id) {
           <div class="small muted">${t('pain')}</div>${spark(d.checkins, 'pain', 10, 'oklch(52% 0.18 27)')}
           <div class="small muted" style="margin-top:10px">${t('mood')}</div>${spark(d.checkins, 'mood', 5, 'oklch(54% 0.13 256)')}
         </section>
+        ${bodyToday(d)}
         <section class="panel"><h3>${t('feedTitle')}</h3><div class="feed">${d.notes.slice(0, 6).map(noteItem).join('')}</div></section>
         <section class="panel"><h3>${t('histTitle')}</h3><div class="feed">${d.history.map((h) => `<div class="it"><div class="who">${t('day', { d: h.day })}　${tt(T.by[h.by_role] || T.by.system)}</div><b>${E(h.name)}</b>${C()}${esc(LV(h.from_level))} → ${esc(LV(h.to_level))}<div class="small muted">${E(h.reason)}</div></div>`).join('') || `<p class="empty">-</p>`}</div></section>
         <section class="panel"><h3>${t('ordersTitle')}</h3><div class="feed">${(d.profile.orders || []).map((o) => `<div class="it"><div class="who">${tt(T.fieldNames[o.key] || [o.key, o.key])}</div>${esc(S.lang === 'en' && o.valueEn ? o.valueEn : o.value)}</div>`).join('')}</div></section>
@@ -1141,14 +1383,210 @@ async function renderReview(id) {
     ${why('related')}`;
 }
 
+// ---------- V0.3 body and wound record ----------
+const opt = (o) => E(o.label);
+function bodyForm(d) {
+  const ck = d.checkin;
+  const f = (S.ui.body ||= {
+    pain: ck?.pain ?? d.baselinePain, mood: ck?.mood ?? 3, note: '', private: !!ck?.private,
+    body: { painRising: false, painWhere: [], painImpact: null, phantom: [], sensation: [], limb: [], woundChecks: [], general: [], woundAnswered: false, hopeless: false, selfHarm: false, shareMood: false, help: null, hardest: '', wantBack: '', ...(ck?.body || {}) },
+    photo: null, photoMsg: null,
+  });
+  const b = f.body;
+  const M = S.meta.body;
+  const multi = (key) => `<div class="choice wrap">${M[key].map((o) => `<button type="button" aria-pressed="${b[key].includes(o.id)}" data-act="b-multi" data-k="${key}" data-v="${o.id}">${opt(o)}</button>`).join('')}</div>`;
+  const one = (key) => `<div class="choice wrap">${M[key].map((o) => `<button type="button" aria-pressed="${b[key] === o.id}" data-act="b-one" data-k="${key}" data-v="${o.id}">${opt(o)}</button>`).join('')}</div>`;
+  const flag = (k, label, danger = false) => `<label class="flag${danger ? ' danger' : ''}"><input type="checkbox" data-b="${k}"${b[k] ? ' checked' : ''}> ${t(label)}</label>`;
+  const last = d.lastPhoto;
+  const photoNow = f.photo || ck?.photo;
+  const woundNone = b.woundAnswered && !b.woundChecks.length;
+  return `<div class="body-grid">
+    <section class="panel bsec"><h2><span class="bnum num">1</span>${t('bPain')}</h2>
+      <div class="painrow"><input type="range" min="0" max="10" value="${f.pain}" data-bf="pain" aria-label="${t('bPain')}"><span class="painval" id="b-painv">${f.pain}</span></div>
+      <p class="small muted" style="margin:4px 0 12px">${t('painHint')}</p>
+      ${flag('painRising', 'bPainRising')}
+      <h4>${t('bPainWhere')}</h4>${multi('painWhere')}
+      <h4>${t('bPainImpact')}</h4>${one('painImpact')}
+    </section>
+    <section class="panel bsec"><h2><span class="bnum num">2</span>${t('bPhantom')}</h2>${multi('phantom')}
+      <h4>${t('bSensation')}</h4>${multi('sensation')}
+      <h4>${t('bLimb')}</h4>${multi('limb')}
+    </section>
+    <section class="panel bsec wide wound-sec"><h2><span class="bnum num">3</span>${t('bWound')}</h2>
+      <p class="small muted">${t('bWoundIntro')}</p>
+      <div class="photo-pair">
+        <figure>${last ? `<img src="${last.photo}" alt="${t('bPhotoYesterday', { d: last.day })}">` : `<div class="ph-empty">${t('bPhotoFirst')}</div>`}<figcaption>${last ? t('bPhotoYesterday', { d: last.day }) : '—'}</figcaption></figure>
+        <figure>${photoNow ? `<img src="${photoNow}" alt="${t('bPhotoToday')}">` : `<label class="ph-empty ph-btn" for="b-photo">${icon('start')}<span>${t('bPhotoBtn')}</span></label>`}<figcaption>${t('bPhotoToday')}${photoNow ? ` · <label class="linkish" for="b-photo">${t('bPhotoBtn')}</label>` : ''}</figcaption></figure>
+      </div>
+      <input type="file" id="b-photo" class="sr" accept="image/*" capture="environment">
+      ${f.photoMsg ? `<p class="photo-msg ${f.photoMsg.ok ? 'ok' : 'warn'}">${f.photoMsg.text}</p>` : ''}
+      <p class="small muted">${t('bPhotoNote')}</p>
+      ${why('photo')}
+      <h4>${t('bWoundAsk')}</h4>
+      <div class="choice wrap">${M.woundChecks.map((o) => `<button type="button" class="redq" aria-pressed="${b.woundChecks.includes(o.id)}" data-act="b-wound" data-v="${o.id}">${opt(o)}</button>`).join('')}<button type="button" aria-pressed="${woundNone}" data-act="b-wound" data-v="none">${t('bWoundNone')}</button></div>
+    </section>
+    <section class="panel bsec"><h2><span class="bnum num">4</span>${t('bGeneral')}</h2>
+      <div class="choice wrap">${M.general.map((o) => `<button type="button" class="redq" aria-pressed="${b.general.includes(o.id)}" data-act="b-multi" data-k="general" data-v="${o.id}">${opt(o)}</button>`).join('')}</div>
+      <p class="sos">${t('sos')}</p>
+    </section>
+    <section class="panel bsec"><h2><span class="bnum num">5</span>${t('bMood')}</h2>
+      <div class="choice wrap">${tt(T.moods).map((w, i) => `<button type="button" aria-pressed="${f.mood === i + 1}" data-act="b-mood" data-v="${i + 1}">${w}</button>`).join('')}</div>
+      <div class="flags">${flag('hopeless', 'bHopeless')}${flag('selfHarm', 'bSelfHarm', true)}${d.support.rehab ? flag('shareMood', 'bShare') : ''}</div>
+    </section>
+    <section class="panel bsec wide"><h2><span class="bnum num">6</span>${t('bLife')}</h2>
+      <h4>${t('bHelp')}</h4>
+      <div class="choice wrap">${M.helpUsed.map((o) => `<button type="button" aria-pressed="${b.help === o.id}" data-act="b-help" data-v="${o.id}">${opt(o)}</button>`).join('')}</div>
+      <div class="grid2" style="margin-top:14px">
+        <label class="f"><span>${t('bHardest')}</span><input type="text" data-bb="hardest" value="${esc(b.hardest || '')}"></label>
+        <label class="f"><span>${t('bWantBack')}</span><input type="text" data-bb="wantBack" value="${esc(b.wantBack || '')}"></label>
+      </div>
+      <label class="f"><span>${t('bNote')}</span><input type="text" data-bf="note" value="${esc(f.note)}"></label>
+      ${d.support.rehab ? `<div class="checks"><label><input type="checkbox" data-bf="private"${f.private ? ' checked' : ''}> ${t('private')}</label></div>` : ''}
+    </section>
+  </div>
+  <div class="body-submit">
+    <button class="btn sun" data-act="b-submit">${t('bSubmit')}</button>
+    <a class="btn ghost" href="#/p/${S.pid}">${t('bBack')}</a>
+    ${S.ui.bodyResult || ''}
+  </div>`;
+}
+
+async function viewBody(id) {
+  await loadPatient(id, 'patient');
+  const d = S.data;
+  header('p');
+  demobar(true);
+  document.getElementById('app').innerHTML = `<div class="page"><div class="wrap">
+    <div class="head"><div>${headMeta(d)}<h1>${t('bodyTitle')}</h1><p class="sub">${t(d.checkin ? 'bDone' : 'bodySub')}</p></div>
+      <div class="head-stats"><div class="stat daystat"><span class="shield num" aria-hidden="true">${d.day}</span><div><b class="num">${t('day', { d: d.day })}</b><span>${t('of90')}</span></div></div></div></div>
+    ${alertBanners(d, 'patient')}
+    ${bodyForm(d)}
+  </div></div>`;
+}
+
+// Downscale to a small JPEG and check only what a camera can tell: is it bright enough, and sharp enough.
+async function preparePhoto(file) {
+  const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = URL.createObjectURL(file); });
+  const scale = Math.min(1, 320 / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(img, 0, 0, c.width, c.height);
+  URL.revokeObjectURL(img.src);
+  const { data, width, height } = g.getImageData(0, 0, c.width, c.height);
+  const lum = new Float32Array(width * height);
+  let sum = 0;
+  for (let i = 0; i < lum.length; i++) { lum[i] = 0.2126 * data[i * 4] + 0.7152 * data[i * 4 + 1] + 0.0722 * data[i * 4 + 2]; sum += lum[i]; }
+  const mean = sum / lum.length;
+  let lap = 0, lap2 = 0, n = 0;
+  for (let y = 1; y < height - 1; y++) for (let x = 1; x < width - 1; x++) {
+    const i = y * width + x;
+    const v = 4 * lum[i] - lum[i - 1] - lum[i + 1] - lum[i - width] - lum[i + width];
+    lap += v; lap2 += v * v; n++;
+  }
+  const sharp = n ? lap2 / n - (lap / n) ** 2 : 0;
+  const msg = mean < 45 ? 'bPhotoDark' : mean > 225 ? 'bPhotoBright' : sharp < 30 ? 'bPhotoBlur' : 'bPhotoOk';
+  let q = 0.72, url = c.toDataURL('image/jpeg', q);
+  while (url.length > 110_000 && q > 0.3) { q -= 0.1; url = c.toDataURL('image/jpeg', q); }
+  return { url, ok: msg === 'bPhotoOk', key: msg };
+}
+
+// ---------- V0.3 life handed back ----------
+async function viewLife(id) {
+  await loadPatient(id, 'patient');
+  const d = S.data;
+  const l = await read(`/patients/${id}/life`);
+  header('life');
+  demobar(true);
+  const max = Math.max(3, ...l.days.map((x) => x.done));
+  const bars = l.days.map((x) => `<div class="lb${x.alert ? ' alert' : ''}${x.day === l.day ? ' today' : ''}" style="--h:${(x.done / max) * 100}%" title="${t('day', { d: x.day })}: ${x.done}"><i></i><span class="num">${x.day === 1 || x.day === l.day || x.day % 7 === 0 ? x.day : ''}</span></div>`).join('');
+  const row = (a) => `<div class="lrow${a.active ? '' : ' inactive'}">
+      <div class="lname"><b>${E(a.life)}</b>${a.active ? '' : `<span class="small muted">${t('startsPhase', { n: a.startsPhase })}</span>`}</div>
+      ${a.active ? `<div class="lcols"><div><span class="small muted">${t('lifeDay1')}</span>${chip(a.start)}</div><span class="larrow${a.now > a.start ? ' up' : ''}" aria-hidden="true">→</span><div><span class="small muted">${t('lifeNow')}</span>${chip(a.now)}</div></div>
+        <div class="lnext">${a.next ? `<span class="small muted">${t('lifeNext')}${C()}</span>${E(a.next)}` : ''}</div>` : ''}
+    </div>`;
+  document.getElementById('app').innerHTML = `<div class="page"><div class="wrap">
+    <div class="head">
+      <div>${headMeta(d)}<h1>${t('lifeTitle')}</h1><p class="sub">${t('lifeSub')}</p>
+        ${l.customGoal ? `<div class="goalline">${pin(14)}<span>${t('lifeGoal')}${C()}${E(l.customGoal)}</span></div>` : ''}</div>
+      <div class="head-stats">
+        <div class="stat life-stat"><b class="num">${d.lifeToday}</b><span>${lifeTodayLine(d.lifeToday)}</span></div>
+        <div class="stat"><b class="num">${l.autonomyStart}% → ${l.autonomyNow}%</b><span>${t('autonomy')}</span></div>
+      </div>
+    </div>
+    ${why('endowed')}
+    <section class="panel"><h3>${t('lifeDays')}</h3><div class="lbars" role="img" aria-label="${t('lifeDays')}">${bars}</div><p class="small muted" style="margin:10px 0 0">${t('lifeDaysNote')}</p></section>
+    <div class="cols">
+      <section class="panel"><h3>${t('abilTitle')}</h3><div class="lrows">${l.abilities.map(row).join('')}</div>${why('mastery')}</section>
+      <aside><section class="panel"><h3>${t('lifeUps')}</h3>
+        ${l.ups.length ? `<ol class="ups">${l.ups.map((u) => `<li><span class="shield num" aria-hidden="true">${u.day}</span><div><b>${E(u.life)}</b><div class="small">${esc(LV(u.from))} → ${esc(LV(u.to))}</div><div class="small muted">${t('day', { d: u.day })} · ${tt(T.lifeBy[u.by] || T.lifeBy.system)}</div></div></li>`).join('')}</ol>` : `<p class="empty">${t('lifeUpsNone')}</p>`}
+      </section></aside>
+    </div>
+  </div></div>`;
+}
+
+// ---------- the story behind the film (fictional) ----------
+function viewStory() {
+  header('home');
+  demobar(false);
+  const beats = tt(T.storyBeats);
+  document.getElementById('app').innerHTML = `
+  <section class="xstory"><div class="wrap">
+    <p class="kicker">${t('storyKicker')}</p>
+    <h1>${t('storyH')}</h1>
+    <p class="lead">${t('storyLead')}</p>
+    <p class="story-goal">${pin(16)}<span>${t('storyGoal')}</span></p>
+  </div></section>
+  ${filmSection()}
+  <section class="band"><div class="wrap">
+    <ol class="beats">${beats.map(([d, txt], i) => `<li style="--i:${i}"><span class="beat-day">${esc(d)}</span><p>${esc(txt)}</p></li>`).join('')}</ol>
+    <p class="story-not">${t('storyNot')}</p>
+    <div class="actions"><a class="btn sun" href="#/p/demo" data-act="use-demo">${t('storyOpen')}</a><a class="btn ghost" href="#/">${t('navHome')}</a></div>
+    <p class="small muted" style="margin-top:22px">${t('storySynthetic')}</p>
+  </div></section>
+  <footer class="foot"><div class="wrap">${t('foot')}</div></footer>`;
+  wireFilm();
+}
+
+// The promo film slot. Drop the-next-step.mp4 (and optional .vtt subtitles and poster.jpg) into public/media/.
+function filmSection() {
+  return `<section class="xfilm" id="film"><div class="wrap xfilm-grid">
+    <div class="xfilm-copy"><p class="kicker">${t('filmKicker')}</p><h2>${t('filmTitle')}<small>THE NEXT STEP</small></h2><p>${t('filmBody')}</p><p class="film-line">${t('filmLine')}</p></div>
+    <div class="film-frame" data-film>
+      <div class="film-ph"><span class="film-end"><b>ReStart90</b><span>把生活还给自己。</span><span>Take your life back.</span><small>人物及医疗数据均为合成内容　Synthetic character and medical data.</small></span><span class="film-soon small">${t('filmSoon')}</span></div>
+    </div>
+  </div></section>`;
+}
+function wireFilm() {
+  const box = document.querySelector('[data-film]');
+  if (!box) return;
+  const film = S.meta.film || {};
+  if (!film.video) return;
+  const sub = (l) => `<track kind="subtitles" srclang="${l}" label="${l === 'zh' ? '中文' : 'English'}" src="/media/the-next-step.${l}.vtt"${S.lang === l ? ' default' : ''}>`;
+  box.innerHTML = `<video controls playsinline preload="metadata"${film.poster ? ' poster="/media/poster.jpg"' : ''}><source src="/media/the-next-step.mp4" type="video/mp4">${(film.subs || []).map(sub).join('')}</video>`;
+}
+
+// ---------- Riri: one fixed way in from every patient page ----------
+function ririDrawer() {
+  let host = document.getElementById('riri');
+  if (!host) { host = document.createElement('div'); host.id = 'riri'; document.body.appendChild(host); }
+  const [, view] = (location.hash || '#/').split('/');
+  if (!['p', 'body', 'life', 'map'].includes(view) || !S.data) { host.innerHTML = ''; return; }
+  const open = S.ui.riri && view !== 'p';
+  host.innerHTML = `<button class="riri-fab" data-act="${open ? 'riri-close' : 'riri-open'}" aria-expanded="${open}">${icon('riri')}<span>${t('rileyOpen')}</span></button>
+    ${open ? `<div class="riri-drawer" role="dialog" aria-label="${t('agentName')}"><button class="riri-x" data-act="riri-close" aria-label="${t('close')}">×</button>${agentPanel(S.data)}</div>` : ''}`;
+}
+
 // ---------- upload wizard ----------
 function viewStart() {
   header('start');
   demobar(false);
-  const w = (S.wizard ||= { step: 1, text: '', pdf: null, fileName: '', result: null, confirm: {}, form: { pain: 3, confidence: 3, goals: [], home: { floor: 1 } } });
-  const steps = ['wz1', 'wz2', 'wz3', 'wz4', 'wz5'];
-  const stepper = `<ol class="stepper" style="grid-template-columns:repeat(5,1fr)">${steps.map((k, i) => `<li class="${i + 1 === w.step ? 'on' : i + 1 < w.step ? 'done' : ''}">${i + 1}　${t(k)}</li>`).join('')}</ol>`;
-  const body = w.step === 1 ? wizardUpload(w) : w.step === 2 ? wizardConfirm(w) : w.step === 3 ? wizardHome(w) : wizardGoals(w);
+  const w = (S.wizard ||= { step: 1, text: '', pdf: null, fileName: '', result: null, confirm: {}, form: { pain: 3, confidence: 3, goals: [], home: { floor: 1 }, support: null } });
+  // V0.3: step 3 asks who is with you; one person can start alone.
+  const steps = ['wz1', 'wz2', 'wzWho', 'wz3', 'wz4', 'wz5'];
+  const stepper = `<ol class="stepper" style="grid-template-columns:repeat(6,1fr)">${steps.map((k, i) => `<li class="${i + 1 === w.step ? 'on' : i + 1 < w.step ? 'done' : ''}">${i + 1}　${t(k)}</li>`).join('')}</ol>`;
+  const body = [null, wizardUpload, wizardConfirm, wizardWho, wizardHome, wizardGoals][w.step](w);
   document.getElementById('app').innerHTML = `<div class="page"><div class="wrap"><div class="head"><div><h1>${t('wzTitle')}</h1><p class="sub">${t('wzSub')}</p></div></div>${stepper}${body}</div></div>`;
 }
 
@@ -1204,13 +1642,31 @@ function wizardConfirm(w) {
     </div>`;
 }
 
+function wizardWho(w) {
+  const f = w.form;
+  const modes = ['solo', 'family', 'rehab', 'both'];
+  const card = (m) => { const [h, sub] = tt(T.supportModes[m]); return `<button type="button" class="mode-card${m === 'solo' ? ' solo' : ''}" aria-pressed="${f.support === m}" data-act="wz-support" data-v="${m}"><span class="mode-ico" aria-hidden="true">${icon(m === 'solo' ? 'riri' : m === 'family' ? 'f' : m === 'rehab' ? 'r' : 'p')}</span><b>${esc(h)}</b><span>${esc(sub)}</span></button>`; };
+  const fam = f.support === 'family' || f.support === 'both';
+  const reh = f.support === 'rehab' || f.support === 'both';
+  return `<section class="panel">
+    <label class="f"><span>${t('fName')}</span><input type="text" data-wz="name" value="${esc(f.name ?? w.result.name ?? '')}"></label>
+    <h2 class="wz-q">${t('wzWhoQ')}</h2><p class="muted" style="margin-top:-6px">${t('wzWhoSub')}</p>
+    <div class="mode-grid" role="group" aria-label="${t('wzWhoQ')}">${modes.map(card).join('')}</div>
+    ${fam || reh ? `<div class="grid2" style="margin-top:16px">
+      ${fam ? `<label class="f"><span>${t('fCaregiver')}</span><input type="text" data-wz="caregiver" value="${esc(f.caregiver || '')}"></label>` : ''}
+      ${reh ? `<label class="f"><span>${t('fRehabName')}</span><input type="text" data-wz="rehabName" value="${esc(f.rehabName || '')}"></label>` : ''}
+    </div>` : ''}
+    ${why('layers')}
+    <div style="display:flex;gap:10px;justify-content:space-between;margin-top:14px">
+      <button class="btn ghost" data-act="wz-step" data-step="2">${t('back')}</button>
+      <button class="btn" data-act="wz-step" data-step="4"${f.support ? '' : ' disabled'}>${t('next')}</button>
+    </div>
+  </section>`;
+}
+
 function wizardHome(w) {
   const f = w.form;
   return `<section class="panel">
-    <div class="grid2">
-      <label class="f"><span>${t('fName')}</span><input type="text" data-wz="name" value="${esc(f.name ?? w.result.name ?? '')}"></label>
-      <label class="f"><span>${t('fCaregiver')}</span><input type="text" data-wz="caregiver" value="${esc(f.caregiver || '')}"></label>
-    </div>
     <div class="f"><span class="small">${t('fHome')}</span>
       <div class="grid2" style="margin-top:8px">
         <label class="f"><span>${t('hFloor')}</span><input type="number" min="1" max="60" data-wz-home="floor" value="${f.home.floor || 1}"></label>
@@ -1218,8 +1674,8 @@ function wizardHome(w) {
       </div>
     </div>
     <div style="display:flex;gap:10px;justify-content:space-between;margin-top:8px">
-      <button class="btn ghost" data-act="wz-step" data-step="2">${t('back')}</button>
-      <button class="btn" data-act="wz-step" data-step="4">${t('next')}</button>
+      <button class="btn ghost" data-act="wz-step" data-step="3">${t('back')}</button>
+      <button class="btn" data-act="wz-step" data-step="5">${t('next')}</button>
     </div>
   </section>`;
 }
@@ -1231,12 +1687,13 @@ function wizardGoals(w) {
       <label class="f"><span>${t('fPain')}${C()}<b id="wz-painv" class="num">${f.pain}</b>/10</span><input type="range" min="0" max="10" value="${f.pain}" data-wz="pain"></label>
       <div class="f"><span class="small">${t('fConfidence')}</span><div class="choice" style="margin-top:6px">${tt(T.confWords).map((wd, i) => `<button aria-pressed="${f.confidence === i + 1}" data-act="wz-conf" data-v="${i + 1}">${wd}</button>`).join('')}</div></div>
     </div>
-    <label class="f" style="margin-top:14px"><span>${t('fWorry')}</span><input type="text" data-wz="worry" value="${esc(f.worry || '')}"></label>
-    <label class="f"><span>${t('fCustom')}</span><input type="text" data-wz="customGoal" placeholder="${t('customPh')}" value="${esc(f.customGoal || '')}"></label>
+    <label class="f wz-goal" style="margin-top:14px"><span>${t('fCustom')}</span><input type="text" data-wz="customGoal" placeholder="${t('customPh')}" value="${esc(f.customGoal || '')}"></label>
+    <label class="f"><span>${t('fWorry')}</span><input type="text" data-wz="worry" value="${esc(f.worry || '')}"></label>
     <div class="f" style="margin-top:6px"><span class="small">${t('fGoals')}</span><div class="choice" style="margin-top:8px">${S.meta.abilities.map((a) => `<button aria-pressed="${f.goals.includes(a.id)}" data-act="wz-goal" data-id="${a.id}">${E(a.life)}</button>`).join('')}</div></div>
     ${why('ownGoal')}
+    <p class="banner calm" style="margin:16px 0 0">${t(f.support === 'rehab' || f.support === 'both' ? 'wzConfirmRehab' : 'wzConfirmSolo')}</p>
     <div style="display:flex;gap:10px;justify-content:space-between;margin-top:14px">
-      <button class="btn ghost" data-act="wz-step" data-step="3">${t('back')}</button>
+      <button class="btn ghost" data-act="wz-step" data-step="4">${t('back')}</button>
       <button class="btn sun" data-act="wz-create">${t('create')}</button>
     </div>
   </section>`;
@@ -1250,9 +1707,14 @@ async function loadPatient(id, role) {
 }
 
 async function render() {
+  await renderView();
+  ririDrawer();
+}
+
+async function renderView() {
   const [, view, id] = (location.hash || '#/').split('/');
   document.documentElement.lang = S.lang === 'zh' ? 'zh-CN' : 'en';
-  document.title = S.lang === 'zh' ? 'ReStart90｜把生活还给自己' : 'ReStart90 — Give life back to yourself';
+  document.title = S.lang === 'zh' ? 'ReStart90｜把生活还给自己' : 'ReStart90 — Take your life back';
   document.body.classList.toggle('why-on', S.why);
   try {
     if (!view) return await viewLanding();
@@ -1262,10 +1724,14 @@ async function render() {
     if (view === 'f') return await viewFamily(id || S.pid);
     if (view === 'r') return id ? await viewRehab(id) : await viewRehabList();
     if (view === 'map') return await viewMap(id || S.pid);
+    if (view === 'body') return await viewBody(id || S.pid);
+    if (view === 'life') return await viewLife(id || S.pid);
+    if (view === 'story') return viewStory();
     return await viewLanding();
   } catch (e) {
     if (e === STALE) return;
-    document.getElementById('app').innerHTML = `<div class="page"><div class="wrap"><p class="banner red">${esc(t('loadErr', { e: e.message }))}</p><a class="btn" href="#/p/demo-lin">${t('heroDemo')}</a></div></div>`;
+    if (e.status === 403 && (view === 'f' || view === 'r')) return viewNotJoined(view, id || S.pid);
+    document.getElementById('app').innerHTML = `<div class="page"><div class="wrap"><p class="banner red">${esc(t('loadErr', { e: e.message }))}</p><a class="btn" href="#/p/demo">${t('heroDemo')}</a></div></div>`;
   }
 }
 
@@ -1278,6 +1744,7 @@ const rerender = async () => {
 // Route changes get a view transition: the user sees where they came from and where they are.
 function navigate() {
   S.ui.after = {}; S.ui.tip = {}; S.ui.ckResult = ''; S.ui.ckEdit = false; S.ui.agent = null;
+  S.ui.riri = false; S.ui.invite = null; S.ui.body = null; S.ui.bodyResult = '';
   let ran = false;
   const go = () => {
     if (ran) return undefined;
@@ -1318,7 +1785,7 @@ function showCheckinResult(r) {
 const actions = {
   lang: () => { S.lang = S.lang === 'zh' ? 'en' : 'zh'; localStorage.setItem('rs90.lang', S.lang); rerender(); },
   why: () => { S.why = !S.why; localStorage.setItem('rs90.why', S.why ? '1' : '0'); rerender(); },
-  'use-demo': () => { S.pid = 'demo-lin'; },
+  'use-demo': () => { S.pid = 'demo'; },
   'to-story': (el, ev) => { ev.preventDefault(); document.getElementById('story')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); },
   hl(el) {
     const box = el.closest('.hl');
@@ -1328,6 +1795,22 @@ const actions = {
     document.querySelector(`.hl [data-act="hl"][data-n="${n}"]`)?.focus();
   },
   pick: (el) => { S.pid = el.dataset.id; },
+  'invite-open': (el) => { S.ui.invite = el.dataset.layer; rerender().then(() => document.getElementById(`inv-${el.dataset.layer}`)?.focus()); },
+  async support(el) {
+    const { layer, action } = el.dataset;
+    const name = document.getElementById(`inv-${layer}`)?.value;
+    if (action === 'invite' && !name?.trim()) return document.getElementById(`inv-${layer}`)?.focus();
+    await api(`/patients/${S.pid}/support`, { layer, action, name });
+    S.ui.invite = null;
+    toast(t('saved'));
+    await rerender();
+  },
+  'riri-open': () => {
+    const panel = document.getElementById('agent');
+    if (panel && !panel.closest('.riri-drawer')) { panel.scrollIntoView({ block: 'center', behavior: 'smooth' }); panel.querySelector('button')?.focus({ preventScroll: true }); return; }
+    S.ui.riri = true; ririDrawer();
+  },
+  'riri-close': () => { S.ui.riri = false; ririDrawer(); document.querySelector('.riri-fab')?.focus(); },
   async log(el) {
     const { task: taskId, status } = el.dataset;
     const r = await api(`/patients/${S.pid}/logs`, { taskId, status });
@@ -1348,7 +1831,7 @@ const actions = {
   },
   async decide(el) {
     const note = document.getElementById(`pn-${el.dataset.pid}`)?.value || document.getElementById(`fn-${el.dataset.pid}`)?.value || undefined;
-    await api(`/patients/${S.pid}/pending/${el.dataset.pid}`, { decision: el.dataset.decision, role: el.dataset.role, note });
+    await api(`/patients/${S.pid}/pending/${el.dataset.pid}`, { decision: el.dataset.decision, role: el.dataset.role, note, home: el.dataset.home === '1' || undefined });
     toast(t('saved'));
     await rerender();
   },
@@ -1359,7 +1842,9 @@ const actions = {
     await rerender();
   },
   async resolve(el) {
-    await api(`/patients/${S.pid}/alerts/${el.dataset.aid}/resolve`, { reply: document.getElementById(`reply-${el.dataset.aid}`).value });
+    const reply = document.getElementById(`reply-${el.dataset.aid}`);
+    if (el.dataset.role === 'patient' && !reply.value.trim()) return reply.focus();
+    await api(`/patients/${S.pid}/alerts/${el.dataset.aid}/resolve`, { reply: reply.value, role: el.dataset.role || 'rehab' });
     toast(t('saved'));
     await rerender();
   },
@@ -1386,6 +1871,7 @@ const actions = {
   async 'agent-do'(el) {
     const a = S.ui.agent;
     const what = el.dataset.do;
+    if (what === 'body') { S.ui.riri = false; location.hash = `#/body/${S.pid}`; return; }
     if (what === 'smaller') {
       await api(`/patients/${S.pid}/logs`, { taskId: el.dataset.task, status: 'cant' });
       a.done = t('saved');
@@ -1409,6 +1895,34 @@ const actions = {
   async copy(el) {
     await navigator.clipboard?.writeText(document.getElementById(el.dataset.target).textContent).catch(() => {});
     toast(t('copied'));
+  },
+  'b-multi': (el) => { const a = S.ui.body.body[el.dataset.k]; const i = a.indexOf(el.dataset.v); if (i >= 0) a.splice(i, 1); else a.push(el.dataset.v); rerender(); },
+  'b-one': (el) => { const b = S.ui.body.body; b[el.dataset.k] = b[el.dataset.k] === el.dataset.v ? null : el.dataset.v; rerender(); },
+  'b-wound': (el) => {
+    const b = S.ui.body.body;
+    b.woundAnswered = true;
+    if (el.dataset.v === 'none') b.woundChecks = [];
+    else { const i = b.woundChecks.indexOf(el.dataset.v); if (i >= 0) b.woundChecks.splice(i, 1); else b.woundChecks.push(el.dataset.v); }
+    rerender();
+  },
+  'b-mood': (el) => { S.ui.body.mood = Number(el.dataset.v); rerender(); },
+  'b-help': (el) => { S.ui.body.body.help = Number(el.dataset.v); rerender(); },
+  async 'b-submit'() {
+    const f = S.ui.body;
+    if (!f.body.woundAnswered && !f.body.woundChecks.length) {
+      toast(t('bNeedWound'), true);
+      return document.querySelector('.wound-sec')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+    const r = await api(`/patients/${S.pid}/checkin`, { pain: f.pain, mood: f.mood, note: f.note, private: f.private, body: f.body, photo: f.photo || undefined });
+    const parsed = r.parsed?.signals?.length ? `<br><span class="small">${t('parsedAs', { s: r.parsed.signals.map((x) => E(S.meta.signals.find((y) => y.id === x)?.label)).join(SEMI()) })}</span>` : '';
+    const photoLine = f.photo ? `<b>${t('bSavedPhoto')}</b><br>` : '';
+    S.ui.bodyResult = r.result === 'ok' ? `<div class="banner calm">${photoLine}${t('ckOk')}${parsed}</div>`
+      : r.result === 'yellow' ? `<div class="banner amber">${photoLine}${t('ckYellow', { why: E(r.reason) })}${r.suggestPeople ? `<br>${t('ckPeople')}` : ''}</div>`
+      : `<div class="banner red">${photoLine}${t('ckRed')}${parsed}</div>`;
+    S.ui.body = null;
+    await rerender();
+    if (r.result === 'red' || r.result === 'emergency') window.scrollTo({ top: 0, behavior: 'smooth' });
+    else document.querySelector('.body-submit')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   },
   'ck-edit': () => { S.ui.ckEdit = true; S.ui.ck = null; S.ui.ckResult = ''; rerender(); },
   'ck-wound': (el) => { S.ui.ck.wound = el.dataset.v; rerender(); },
@@ -1440,10 +1954,10 @@ const actions = {
   async reset() {
     if (!confirm(t('resetConfirm'))) return;
     await api('/demo/reset', {});
-    S.pid = 'demo-lin';
+    S.pid = 'demo';
     S.ui = {};
-    if (location.hash === '#/p/demo-lin') await rerender();
-    else location.hash = '#/p/demo-lin';
+    if (location.hash === '#/p/demo') await rerender();
+    else location.hash = '#/p/demo';
   },
   review: (el) => { S.ui.review = { type: el.dataset.type, index: Number(el.dataset.index) }; renderReview(S.pid); },
   async 'save-review'(el) {
@@ -1466,6 +1980,7 @@ const actions = {
   'wz-focus': (el) => { S.ui.activeField = el.dataset.key; viewStart(); document.getElementById(`q-${el.dataset.key}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); },
   'wz-confirm': (el) => { S.wizard.confirm[el.dataset.key] = el.checked; viewStart(); },
   'wz-step': (el) => { S.wizard.step = Number(el.dataset.step); viewStart(); window.scrollTo(0, 0); },
+  'wz-support': (el) => { S.wizard.form.support = el.dataset.v; viewStart(); },
   'wz-conf': (el) => { S.wizard.form.confidence = Number(el.dataset.v); viewStart(); },
   'wz-goal': (el) => {
     const g = S.wizard.form.goals;
@@ -1506,6 +2021,14 @@ document.addEventListener('input', (ev) => {
     if (el.dataset.ck === 'pain') document.getElementById('painv').textContent = el.value;
   }
   if (el.id === 'ag-text' && S.ui.agent) S.ui.agent.text = el.value;
+  if (S.ui.body) {
+    if (el.dataset.bf) {
+      S.ui.body[el.dataset.bf] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? Number(el.value) : el.value;
+      if (el.dataset.bf === 'pain') document.getElementById('b-painv').textContent = el.value;
+    }
+    if (el.dataset.bb) S.ui.body.body[el.dataset.bb] = el.value;
+    if (el.dataset.b) S.ui.body.body[el.dataset.b] = el.checked;
+  }
   if (el.dataset.ckSym && S.ui.ck) {
     const s = new Set(S.ui.ck.symptoms);
     if (el.checked) s.add(el.dataset.ckSym); else s.delete(el.dataset.ckSym);
@@ -1524,6 +2047,14 @@ document.addEventListener('input', (ev) => {
 
 document.addEventListener('change', async (ev) => {
   const el = ev.target;
+  if (el.id === 'b-photo' && el.files[0] && S.ui.body) {
+    try {
+      const r = await preparePhoto(el.files[0]);
+      S.ui.body.photo = r.url;
+      S.ui.body.photoMsg = { ok: r.ok, text: t(r.key) };
+    } catch { toast(t('bPhotoBlur'), true); }
+    return rerender();
+  }
   if (el.id !== 'wz-file' || !el.files[0]) return;
   const file = el.files[0];
   S.wizard.fileName = file.name;

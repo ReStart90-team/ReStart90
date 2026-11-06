@@ -28,7 +28,9 @@ Don't push straight to `main`. If you both edit the same file, the pull request 
 | What | File |
 |---|---|
 | Daily abilities, the four levels, red-flag rules, phases, peer stories | `lib/content.js` |
-| The demo patient Kai Lin: discharge summary and profile | `lib/samples.js` |
+| The demo patient Lin Kai: discharge summary and profile | `lib/samples.js` |
+| Body-record fields and red-flag answers | `BODY` in `lib/content.js` |
+| The promo film | `public/media/` (see the README there) |
 | All interface copy (English and Chinese) | the `T` object at the top of `public/app.js` |
 | Design rationale shown by the "Design rationale" toggle | `WHY` and `PRINCIPLES` in `public/app.js` |
 | Colours, typefaces, layout | `public/styles.css` |

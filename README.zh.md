@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-把生活还给自己。Give life back to yourself.
+把生活还给自己。Take your life back.
 
 ReStart90 帮助刚出院的下肢截肢患者和家属，用 90 天把生活一步一步交还给患者。每项生活能力分四级：家属替我做 → 家属陪我做 → 家属在旁保护 → 我自己能做到。
 
@@ -17,7 +17,7 @@ npm install
 npm start
 ```
 
-打开 http://localhost:3090。第一次启动会自动生成示例患者林凯（27 岁，左侧小腿截肢，回家第 9 天，带前 8 天的记录）。
+打开 http://localhost:3090。第一次打开会自动生成示例患者林凯（虚构人物，52 岁，黔东南苗寨银匠，左侧小腿截肢，家中无持续陪护，回家第 9 天，带前 8 天的记录）。V0.3：一个人也能开始，家属和康复人员是患者之后可以邀请的两层支持。
 
 - 接入 AI：设置环境变量 `ANTHROPIC_API_KEY` 后，出院小结提取和口语解析会调用 Claude（默认 `claude-opus-5-5`，可用 `RESTART90_MODEL` 修改）。已开启 `fallbacks: "default"`：模型拒答时，服务端会自动换用备用模型。
 - 不接 AI：自动进入离线模式。示例病历使用预生成结果，其他文字使用规则提取。红旗关键词规则无论是否接入 AI 都会运行。强制离线：`RESTART90_OFFLINE=1 npm start`。
@@ -54,7 +54,7 @@ npm start
 ```
 server.js          HTTP 服务和 REST API（无框架）
 lib/content.js     中英双语内容库：4 个阶段（含通过和暂停条件）、6 项生活能力 × 4 级、红旗规则、训练、同伴故事（模板 v0.1，待临床审核）
-lib/engine.js      规则引擎：今日清单、四步升级、退级、红旗停止、医生摘要、长期没有进展和分歧、路标助手、复盘、90 天地图
+lib/engine.js      规则引擎：今日清单、四步升级、退级、红旗停止、医生摘要、长期没有进展和分歧、Riri 助手、复盘、90 天地图
 lib/ai.js          AI 层：出院小结提取、口语转信号、倾听回复，附带离线兜底
 lib/samples.js     合成出院小结和预生成提取结果
 lib/db.js          SQLite 表结构
@@ -67,7 +67,7 @@ test/              规则引擎测试
 - 升级条件：一级升二级需要连续完成 2 次，更高等级需要连续完成 3 次，并且没有红旗信号。
 - 每一次升级都走四步：系统建议 → 患者愿意试 → 家属确认家里条件 → 康复人员最后确认。患者没有点头时，康复人员无法确认。
 - 新建的档案必须由康复人员确认计划；确认前所有能力按最保守的等级执行。
-- 路标助手从不说"这很正常"：命中红旗规则时直接转给专业人员，其余情况说明"我不能判断"，并提供发给康复人员的入口。
+- Riri 助手从不说"这很正常"：命中红旗规则时直接转给专业人员，其余情况说明"我不能判断"，并提供发给康复人员的入口。
 - 疼痛或情绪出现波动时，系统暂缓所有升级。
 - 出现红旗信号时，暂停相关任务，停止所有升级，并生成联系医生摘要。摘要里的数字全部来自数据库。
 - 胸痛、气短，或有伤害自己的想法，会暂停全部任务，并显示 120 和 12356 热线。
@@ -85,7 +85,7 @@ test/              规则引擎测试
 | POST | `/api/patients/:id/checkin` | 每日身体和情绪反馈，触发红旗规则 |
 | POST | `/api/patients/:id/pending/:pid` | `{decision, role, note}` 患者、家属、康复人员依次确认或拒绝升级 |
 | POST | `/api/patients/:id/plan` | 患者选择什么时候做（早饭后、午饭后、晚饭后） |
-| POST | `/api/patients/:id/agent` | 路标助手：`{intent: today \| cant \| normal \| talk, text?, taskId?}` |
+| POST | `/api/patients/:id/agent` | Riri 助手：`{intent: today \| cant \| normal \| talk, text?, taskId?}` |
 | POST | `/api/patients/:id/confirm-plan` | 康复人员确认新档案的 90 天计划 |
 | POST | `/api/patients/:id/notes` · `/todos/:tid` | 记录观察（可设为仅康复人员可见）、勾选家里的准备 |
 | POST | `/api/patients/:id/abilities/:ability` | 康复人员调整等级、换成更小的一步、暂停 |
