@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { openDb } from './lib/db.js';
 import * as E from './lib/engine.js';
 import { extractDischarge, parseNote, aiStatus, listen } from './lib/ai.js';
-import { ABILITIES, LEVELS, PHASES, SIGNALS, SOURCES, PEER_STORIES } from './lib/content.js';
+import { ABILITIES, LEVELS, PHASES, SIGNALS, SOURCES, PEER_STORIES, BODY } from './lib/content.js';
 import { SAMPLE_DISCHARGE } from './lib/samples.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -42,15 +42,16 @@ function sandboxOf(req, res) {
   return token;
 }
 
-const demoIdFor = (sb) => `demo-lin-${sb}`;
+const demoIdFor = (sb) => `demo-${sb}`;
+const LEGACY_DEMO = 'demo-lin'; // links shared before V0.3 still open the demo
 
 function ensureDemo(sb) {
   if (!db.prepare('SELECT 1 FROM patients WHERE id = ? AND sandbox = ?').get(demoIdFor(sb), sb)) E.seedDemo(db, { id: demoIdFor(sb), sandbox: sb });
 }
 
-// The client always says "demo-lin"; inside a sandbox that means this visitor's own copy.
+// The client always says "demo"; inside a sandbox that means this visitor's own copy.
 function patientId(sb, id) {
-  const real = id === E.DEMO_ID ? (ensureDemo(sb), demoIdFor(sb)) : id;
+  const real = id === E.DEMO_ID || id === LEGACY_DEMO ? (ensureDemo(sb), demoIdFor(sb)) : id;
   if (!db.prepare('SELECT 1 FROM patients WHERE id = ? AND sandbox = ?').get(real, sb)) throw E.httpError(404, '找不到这位患者', 'Patient not found');
   return real;
 }
@@ -91,11 +92,18 @@ const route = (method, pattern, handler) => {
 
 route('GET', '/api/health', () => ({ ok: true }));
 
+// Which promo-film files are in public/media/, so the page shows the film or the placeholder without probing.
+function filmFiles() {
+  const has = (f) => fs.existsSync(path.join(PUBLIC, 'media', f));
+  return { video: has('the-next-step.mp4'), poster: has('poster.jpg'), subs: ['en', 'zh'].filter((l) => has(`the-next-step.${l}.vtt`)) };
+}
+
 route('GET', '/api/meta', async () => ({
-  levels: LEVELS, phases: PHASES, signals: SIGNALS, sources: SOURCES, peers: PEER_STORIES,
+  levels: LEVELS, phases: PHASES, signals: SIGNALS, sources: SOURCES, peers: PEER_STORIES, body: BODY,
   abilities: ABILITIES.map(({ id, name, life, risk, phase, track, levels, smaller, noDo }) => ({ id, name, life, risk, phase, track, levels, smaller, noDo })),
   sample: SAMPLE_DISCHARGE,
   ai: await aiStatus(),
+  film: filmFiles(),
 }));
 
 route('POST', '/api/extract', async ({ body, ip }) => {
@@ -111,6 +119,8 @@ route('GET', '/api/patients', ({ sb }) => {
 route('POST', '/api/patients', ({ body, sb }) => E.createPatient(db, body, sb));
 route('GET', '/api/patients/:id', ({ params, query }) => E.patientState(db, params.id, query.get('role') || 'patient'));
 route('GET', '/api/patients/:id/map', ({ params }) => E.map90(db, params.id));
+route('GET', '/api/patients/:id/life', ({ params }) => E.lifeBack(db, params.id));
+route('POST', '/api/patients/:id/support', ({ params, body }) => E.setSupport(db, params.id, body));
 route('GET', '/api/patients/:id/review', ({ params, query }) => E.review(db, params.id, query.get('type') === 'm' ? 'm' : 'w', Math.max(1, Number(query.get('index')) || 1)));
 route('POST', '/api/patients/:id/review', ({ params, body }) => E.saveReview(db, params.id, { ...body, role: role(body.role) }));
 route('POST', '/api/patients/:id/logs', ({ params, body }) => E.logTask(db, params.id, body));
@@ -122,7 +132,7 @@ route('POST', '/api/patients/:id/checkin', async ({ params, body, ip }) => {
 });
 route('POST', '/api/patients/:id/pending/:pid', ({ params, body }) => E.decidePending(db, params.id, Number(params.pid), { ...body, role: role(body.role) }));
 route('POST', '/api/patients/:id/abilities/:ability', ({ params, body }) => E.adjustAbility(db, params.id, params.ability, body));
-route('POST', '/api/patients/:id/alerts/:aid/resolve', ({ params, body }) => E.resolveAlert(db, params.id, Number(params.aid), body));
+route('POST', '/api/patients/:id/alerts/:aid/resolve', ({ params, body }) => E.resolveAlert(db, params.id, Number(params.aid), { reply: body.reply, role: body.role === 'patient' ? 'patient' : 'rehab' }));
 route('POST', '/api/patients/:id/notes', ({ params, body }) => E.addNote(db, params.id, { role: role(body.role), text: body.text, private: !!body.private }));
 route('POST', '/api/patients/:id/todos/:tid', ({ params, body }) => E.toggleTodo(db, params.id, params.tid, body.done));
 route('POST', '/api/patients/:id/agent', async ({ params, body, ip }) => {
@@ -141,7 +151,31 @@ function role(r) {
   return r;
 }
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.json': 'application/json', '.mp4': 'video/mp4', '.webm': 'video/webm', '.vtt': 'text/vtt; charset=utf-8' };
+
+// The promo film and its subtitles live in public/media/. Video needs byte ranges (Safari will not play without them),
+// and a missing file is a real 404 so the page can show the placeholder instead.
+function serveMedia(req, res, pathname) {
+  const root = path.join(PUBLIC, 'media');
+  const file = path.normalize(path.join(PUBLIC, pathname));
+  if (!file.startsWith(root + path.sep) || !/\.(mp4|webm|vtt|jpg|png)$/.test(file)) return send(res, 404, { error: 'not found' });
+  fs.stat(file, (err, st) => {
+    if (err || !st.isFile()) return send(res, 404, { error: 'not found' });
+    const type = MIME[path.extname(file)];
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (m && (m[1] || m[2])) {
+      const start = m[1] ? Number(m[1]) : Math.max(0, st.size - Number(m[2]));
+      const end = m[1] && m[2] ? Math.min(Number(m[2]), st.size - 1) : st.size - 1;
+      if (start > end || start >= st.size) { res.writeHead(416, { 'Content-Range': `bytes */${st.size}` }); return res.end(); }
+      res.writeHead(206, { 'Content-Type': type, 'Content-Range': `bytes ${start}-${end}/${st.size}`, 'Accept-Ranges': 'bytes', 'Content-Length': end - start + 1, 'Cache-Control': 'public, max-age=3600' });
+      if (req.method === 'HEAD') return res.end();
+      return fs.createReadStream(file, { start, end }).pipe(res);
+    }
+    res.writeHead(200, { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Content-Length': st.size, 'Cache-Control': 'public, max-age=3600' });
+    if (req.method === 'HEAD') return res.end();
+    fs.createReadStream(file).pipe(res);
+  });
+}
 
 // Self-hosted typefaces (OFL), served straight from the installed packages; each file is immutable per version.
 const VENDOR = { overpass: '@fontsource-variable/overpass', 'noto-sans-sc': '@fontsource-variable/noto-sans-sc' };
@@ -159,6 +193,7 @@ function serveVendor(res, pathname) {
 
 function serveStatic(req, res, pathname) {
   if (pathname.startsWith('/vendor/')) return serveVendor(res, pathname);
+  if (pathname.startsWith('/media/')) return serveMedia(req, res, pathname);
   const file = path.normalize(path.join(PUBLIC, pathname === '/' ? 'index.html' : pathname));
   if (!file.startsWith(PUBLIC)) return send(res, 403, { error: 'forbidden' });
   fs.readFile(file, (err, data) => {
