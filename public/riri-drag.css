@@ -1,0 +1,230 @@
+/* Load after the existing styles. The supplied Riri artwork is unchanged. */
+#riri-root.riri-positioned {
+  pointer-events: none;
+}
+
+#riri-root.riri-positioned .riri-dock {
+  position: fixed;
+  left: var(--riri-x);
+  top: var(--riri-y);
+  right: auto;
+  bottom: auto;
+  width: var(--riri-launcher-width);
+  height: var(--riri-launcher-height);
+  display: block;
+  gap: 0;
+  pointer-events: none;
+}
+
+#riri-root.riri-positioned .riri-launcher {
+  display: block;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: grab;
+}
+
+#riri-root.riri-positioned .riri-launcher img {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+#riri-root.riri-positioned .riri-launcher:focus-visible {
+  outline: 3px solid #f6db94;
+  outline-offset: 5px;
+}
+
+#riri-root.riri-positioned.riri-pressing .riri-launcher,
+#riri-root.riri-positioned.riri-dragging .riri-launcher,
+#riri-root.riri-positioned.riri-dragging .riri-launcher:hover {
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  cursor: grabbing;
+}
+
+/* Both bubbles are absolutely positioned and transparent to hit testing. The dock's
+   clickable footprint is exactly the launcher, not the hint's width or whitespace. */
+#riri-root.riri-positioned .riri-dock > span,
+#riri-root.riri-positioned .riri-drag-tip {
+  position: absolute;
+  left: var(--riri-hint-x, 0px);
+  top: var(--riri-hint-y, 0px);
+  right: auto;
+  bottom: auto;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: var(--riri-hint-max-width, 240px);
+  margin: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  user-select: none;
+}
+
+#riri-root.riri-positioned .riri-drag-tip {
+  width: var(--riri-hint-width, max-content);
+  padding: 9px 12px;
+  border: 1px solid #514762;
+  border-radius: 8px;
+  background: #171220fa;
+  color: #e5ddeb;
+  box-shadow: 0 5px 22px #0005;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.6;
+  opacity: 0;
+  z-index: 1;
+}
+
+#riri-root.riri-positioned .riri-launcher:hover ~ .riri-drag-tip,
+#riri-root.riri-positioned .riri-launcher:focus-visible ~ .riri-drag-tip {
+  opacity: 1;
+}
+
+#riri-root.riri-positioned .riri-dock:has(.riri-launcher:hover) > span,
+#riri-root.riri-positioned .riri-dock:has(.riri-launcher:focus-visible) > span,
+#riri-root.riri-positioned.riri-pressing .riri-dock > span,
+#riri-root.riri-positioned.riri-pressing .riri-drag-tip,
+#riri-root.riri-positioned.riri-dragging .riri-dock > span,
+#riri-root.riri-positioned.riri-dragging .riri-drag-tip,
+#riri-root.riri-positioned .riri-dock[data-riri-hint="hidden"] > span,
+#riri-root.riri-positioned .riri-dock[data-riri-hint="hidden"] .riri-drag-tip {
+  opacity: 0;
+}
+
+/* Keep the close button in its own non-scrolling strip. The existing .agent,
+   including history, prompts, textarea and Send, scrolls below it without cloning. */
+#riri-root.riri-positioned .riri-drawer {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding-top: 36px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  background: #141524f5;
+  animation-name: riri-position-fade;
+  transform-origin: center;
+}
+
+#riri-root.riri-positioned .riri-drawer > .riri-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  z-index: 2;
+  touch-action: manipulation;
+}
+
+#riri-root.riri-positioned .riri-drawer > .agent {
+  position: relative;
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  overflow-wrap: anywhere;
+}
+
+#riri-root.riri-positioned .riri-drawer .chat-history {
+  max-height: var(--riri-history-height, 300px);
+  overscroll-behavior: contain;
+}
+
+#riri-root.riri-positioned .riri-drawer .chat-composer,
+#riri-root.riri-positioned .riri-drawer .chat-composer textarea,
+#riri-root.riri-positioned .riri-drawer .ah > div {
+  min-width: 0;
+}
+
+#riri-root.riri-positioned .riri-drawer .chat-composer textarea {
+  box-sizing: border-box;
+  scroll-margin-block: 12px;
+}
+
+#riri-root.riri-positioned .riri-drag-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+  pointer-events: none;
+}
+
+/* Prevent the entrance scale/translation from carrying a clamped drawer offscreen
+   or fighting movement; position calculations always use untransformed sizes. */
+#riri-root.riri-positioned.riri-dragging .riri-drawer {
+  animation: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+@keyframes riri-position-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #riri-root.riri-positioned .riri-launcher,
+  #riri-root.riri-positioned .riri-launcher:hover,
+  #riri-root.riri-positioned .riri-drawer,
+  #riri-root.riri-positioned .riri-drag-tip {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* The draggable launcher must not disappear behind the sticky navigation. */
+#riri-root.riri-positioned .riri-dock { z-index: 120; }
+#riri-root.riri-positioned .riri-drawer { z-index: 119; }
+
+#riri-root.riri-positioned .riri-dock > span,
+#riri-root.riri-positioned .riri-drag-tip { display: none !important; }
+
+@media (max-width: 680px) {
+  #riri-root.riri-positioned .riri-close { width: 44px; height: 44px; font-size: 24px; }
+  #riri-root.riri-positioned .riri-drawer .agent { padding-top: 52px; }
+}
+
+@media (max-width: 680px) {
+  #riri-root .riri-close { width: 44px !important; height: 44px !important; font-size: 24px !important; right: 6px !important; top: 6px !important; }
+  #riri-root .riri-drawer .agent { padding-top: 52px !important; }
+}
+
+@media (max-width: 680px) {
+  #riri-root.riri-positioned .riri-drawer[data-riri-side="sheet"] { border-radius: 20px; padding-top: 42px; background: #141624; border: 1px solid #63546e; box-shadow: 0 -14px 65px #000b; }
+  #riri-root.riri-positioned .riri-drawer[data-riri-side="sheet"]::before { content: ''; position: absolute; top: 13px; left: calc(50% - 22px); width: 44px; height: 4px; border-radius: 8px; background: #736980; }
+  #riri-root.riri-positioned .riri-drawer[data-riri-side="sheet"] > .agent { border: 0; border-radius: 0; padding: 14px 16px 16px !important; }
+  #riri-root .riri-drawer[data-riri-side="sheet"] .ah { padding-right: 24px; }
+  #riri-root .riri-drawer[data-riri-side="sheet"] .chat-history { max-height: 160px; }
+  #riri-root .riri-drawer[data-riri-side="sheet"] .chat-composer { position: sticky; bottom: -16px; z-index: 1; background: #141624; padding: 12px 0 16px; margin-bottom: -16px; }
+  #riri-root .riri-drawer[data-riri-side="sheet"] textarea { font-size: 16px; min-height: 76px; }
+  #riri-root .riri-drawer[data-riri-side="sheet"] .chat-composer button { min-height: 44px; }
+}
+
+.riri-backdrop { display: none; }
+@media (max-width: 680px) {
+  #riri-root .riri-backdrop { display: block; position: fixed; inset: 0; z-index: 118; border: 0; border-radius: 0; margin: 0; padding: 0; background: #03050b9c; pointer-events: auto; }
+  #riri-root:has(.riri-drawer[data-riri-side="sheet"]) .riri-dock { visibility: hidden; pointer-events: none; }
+}

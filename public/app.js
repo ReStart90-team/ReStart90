@@ -1,9 +1,13 @@
+import { syncVisuals } from './motion.js';
+import { configureAccounts, accountState, accountHeaders, refreshAccount, rememberAccountTarget, showAccount, showProfiles, showJoin, mountParticipants, recordRoute } from './accounts.js?v=20261109-phone';
+import { applyWorkspace, enhanceReview } from './workspace.js?v=20261109-2104';
+import { syncRiriPosition } from './riri-drag.js?v=20261109-2104';
 // ReStart90 front end — vanilla ES module, hash routing, bilingual.
 // Every page is organised by the principles in DESIGN.md; the "Design rationale" toggle shows them in place.
 
 const S = {
   // English first; Chinese is one tap away, and ?lang=zh opens a link straight in Chinese.
-  lang: (() => { const q = new URLSearchParams(location.search).get('lang'); return q === 'zh' || q === 'en' ? q : localStorage.getItem('rs90.lang') || 'en'; })(),
+  lang: (() => { const q = new URLSearchParams(location.search).get('lang'); return q === 'zh' || q === 'en' ? q : localStorage.getItem('rs90.lang') || 'zh'; })(),
   pid: localStorage.getItem('rs90.pid') || 'demo-lin',
   why: localStorage.getItem('rs90.why') === '1',
   meta: null,
@@ -11,6 +15,28 @@ const S = {
   wizard: null,
   ui: {},
 };
+
+let contextGeneration = 0, patientGeneration = 0, agentGeneration = 0;
+const accountId = () => accountState().user?.openId || '';
+const recordDay = (d = S.data) => `${d?.date || ''}:${d?.day ?? ''}`;
+function requestContext() { return { generation:contextGeneration, hash:location.hash, pid:S.pid, account:accountId() }; }
+function assertContext(context) {
+  if (context.generation !== contextGeneration || context.hash !== location.hash || context.pid !== S.pid || context.account !== accountId()) throw STALE;
+}
+function clearPatientDrafts() {
+  agentGeneration++;
+  S.ui.ck = null; S.ui.ckScope = null; S.ui.ckEdit = false; S.ui.ckResult = ''; S.ui.agent = null;
+  S.ui.after = {}; S.ui.afterGood = {}; S.ui.tip = {};
+}
+function selectPatient(id) {
+  if (S.pid !== id) {
+    contextGeneration++; patientGeneration++;
+    clearPatientDrafts(); S.data = null; S.dataPid = null;
+  }
+  S.pid = id;
+  localStorage.setItem('rs90.pid', id);
+}
+function draftScope(d = S.data) { return JSON.stringify([accountId(), S.pid, recordDay(d)]); }
 
 // ---------- copy ----------
 const T = {
@@ -20,18 +46,18 @@ const T = {
   navFamily: ['家属', 'Family'],
   navRehab: ['康复人员', 'Rehab team'],
   navMap: ['90天地图', '90-day map'],
-  navNew: ['新建档案', 'New patient'],
+  navNew: ['新建档案', 'New profile'],
   navWhy: ['为什么有效', 'Why it works'],
   langBtn: ['English', '中文'],
   whyBtn: ['设计依据', 'Design rationale'],
 
   // landing
-  heroTitle: ['把生活<br>还给自己。', 'Take your life<br>back.'],
-  heroLead: ['从出院第 1 天到第 90 天，ReStart90 把医嘱变成患者、家属和康复人员今天各自要做的事，一项一项把生活交还给患者。', 'From day 1 home to day 90, ReStart90 turns the doctor’s orders into what the patient, family and rehab team each do today, handing life back one task at a time.'],
-  heroDemo: ['看看林凯的第 9 天', 'See Kai Lin’s day 9'],
-  heroStart: ['上传出院医嘱', 'Upload discharge orders'],
+  heroTitle: ['把生活<br>还给自己<span class="hero-period">。</span>', 'Take your<br>life back.'],
+  heroLead: ['把出院资料和医嘱限制，整理成每日任务与记录。瑞瑞陪你说清今天；患者、家属和康复人员在同一计划中各做各的事。', 'Turn discharge information and medical limits into daily tasks and records. Riri helps make today clear; patients, family and rehab professionals each see their part of the same plan.'],
+  heroDemo: ['看看合成示例A的第 9 天', 'See Demo case A’s day 9'],
+  heroStart: ['上传出院小结', 'Upload discharge summary'],
   whyLink: ['为什么这样设计', 'Why it’s designed this way'],
-  tcTitle: ['林凯，回家第 {d} 天', 'Kai Lin, day {d} at home'],
+  tcTitle: ['合成示例A，回家第 {d} 天', 'Demo case A, day {d} at home'],
   tcPatient: ['患者做什么', 'Patient does'],
   tcFamily: ['家属做到哪里停', 'Family stops at'],
   tcRehab: ['康复人员', 'Rehab team'],
@@ -40,24 +66,25 @@ const T = {
   demoLife: ['自己洗脸、刷牙', 'Wash my face and brush my teeth'],
   demoWho: ['谁在做', 'Who does it'],
   demoFamily: ['家属', 'Family'],
-  demoDay: ['林凯，第 {d} 天', 'Kai Lin, day {d}'],
+  demoDay: ['合成示例A，第 {d} 天', 'Demo case A, day {d}'],
   me: ['我', 'me'],
   hlHere: ['你在这里', 'You are here'],
-  heroWhere: ['林凯在第 {d} 天', 'Kai is on day {d}'],
+  heroWhere: ['合成示例A在第 {d} 天', 'the demo patient is on day {d}'],
   heroScope: ['下肢截肢出院后的 90 天', 'The first 90 days home after a lower-limb amputation'],
+  todayThings: ['今天的三件事', 'Today’s three things'],
   scrollHint: ['往下滑', 'Scroll'],
   stTitle: ['同一件事，走四站', 'One task, four stops'],
-  stIntro: ['以「{life}」为例。林凯每往前走一站，家属就退开一步。', 'Take “{life}”. Each stop Kai moves forward, family steps back once more.'],
-  stKai: ['林凯做', 'Kai does'],
+  stIntro: ['以「{life}」为例。合成示例A每往前走一站，家属就退开一步。', 'Take “{life}”. Each stop in demo case A moves forward, family steps back once more.'],
+  stKai: ['合成示例A做', 'The demo patient does'],
   stFam: ['家属做到这里停', 'Family stops here'],
   sfTitle: ['出现红旗，系统先停下来。', 'When a red flag appears, the system stops first.'],
   sfBody: ['伤口渗液、发烧、疼痛突然加重、跌倒：规则引擎立刻暂停相关任务，停止所有升级，再把数据库里的真实记录整理成一份给医生的摘要。AI 不做判断，也不说"这很正常"。', 'A leaking wound, a fever, a sudden rise in pain, a fall: the rules engine pauses the related tasks at once, stops every upgrade, and turns the recorded data into a summary for the doctor. The AI makes no judgement and never says “that’s normal”.'],
-  sfTicket: ['【联系医生摘要】\n林凯，27 岁，左侧小腿截肢\n出院第 9 天\n触发信号：伤口渗液、有异味\n近 3 天疼痛：3 → 3 → 6（基线 4）\n系统已做：暂停残肢护理、床椅转移；停止所有升级\n本摘要不包含诊断', '[Summary for the doctor]\nKai Lin, 27, left below-knee amputation\nDay 9 after discharge\nSignal: wound leaking, smells\nPain, last 3 days: 3 → 3 → 6 (baseline 4)\nDone: limb care and transfers paused; all upgrades stopped\nThis summary contains no diagnosis'],
+  sfTicket: ['【联系医生摘要】\n合成示例A，27 岁，左侧小腿截肢\n出院第 9 天\n触发信号：伤口渗液、有异味\n近 3 天疼痛：3 → 3 → 6（基线 4）\n系统已做：暂停残肢护理、床椅转移；停止所有升级\n本摘要不包含诊断', '[Summary for the doctor]\nDemo case A, 27, left below-knee amputation\nDay 9 after discharge\nSignal: wound leaking, smells\nPain, last 3 days: 3 → 3 → 6 (baseline 4)\nDone: limb care and transfers paused; all upgrades stopped\nThis summary contains no diagnosis'],
   sfTry: ['在演示里点「伤口异常」试试', 'Try “Wound problem” in the demo'],
   hlTap: ['点一站，看看家属退到哪里', 'Tap a stop to see how far family steps back'],
   hlPassed: ['这一站已经走过', 'Already past this stop'],
   hlAhead: ['还没走到这一站', 'Not at this stop yet'],
-  hlKai: ['林凯', 'Kai'],
+  hlKai: ['合成示例A', 'the demo patient'],
   hlFamily: ['家属', 'Family'],
   hlDay90: ['第 90 天', 'Day 90'],
   fam: ['家属', 'family'],
@@ -75,7 +102,7 @@ const T = {
   methodTitle: ['每一项生活能力，都走这四步', 'Every part of daily life takes these four steps'],
   methodIntro: ['照顾不会突然停止。在安全的前提下，家属一步一步退后，把生活的主导权交还给患者。', 'Care never stops all at once. As long as it is safe, family steps back one stage at a time and hands the lead back.'],
   dayTitle: ['同一天，三张不同的清单', 'One day, three different lists'],
-  dayIntro: ['以林凯回家第 9 天为例。同一份医嘱，三个人看到的是各自要做的事。', 'Kai Lin’s day 9 at home. One set of orders; each person sees their own job.'],
+  dayIntro: ['以合成示例A回家第 9 天为例。同一份医嘱，三个人看到的是各自要做的事。', 'Demo case A’s day 9 at home. One set of orders; each person sees their own job.'],
   dayP: ['我今天能自己做什么？', 'What can I do myself today?'],
   dayPItems: [['用镜子看一遍残肢，缠第一圈绷带', '坐轮椅到洗手池，自己刷牙洗脸', '读一条同伴故事'], ['Check the limb in a mirror and wrap the first turn', 'Wheel to the sink and wash up yourself', 'Read one peer story']],
   dayF: ['我该帮多少？什么时候放手？', 'How much do I help? When do I let go?'],
@@ -95,7 +122,7 @@ const T = {
     [['不用愧疚驱动', '没有断签惩罚，没有排行榜'], ['No guilt', 'No broken-streak penalties, no leaderboards']],
   ],
   ctaTitle: ['从第 1 天开始。', 'Start with day 1.'],
-  ctaBody: ['先上传一份出院医嘱生成 90 天计划，或者先看看林凯的第 9 天。', 'Upload discharge orders to get a 90-day plan, or look at Kai Lin’s day 9 first.'],
+  ctaBody: ['先上传一份出院医嘱生成 90 天计划，或者先看看合成示例A的第 9 天。', 'Upload discharge orders to get a 90-day plan, or look at Demo case A’s day 9 first.'],
   foot: ['演示中的所有病历和数据都是合成的。内容模板 v0.1，待临床审核。', 'All records and data in this demo are synthetic. Content templates v0.1, pending clinical review.'],
 
   // shared
@@ -138,8 +165,8 @@ const T = {
   famNo: ['还不行', 'Not yet'],
   famNoPh: ['还差什么？比如：洗手池太高、缺扶手', 'What’s missing? e.g. the sink is too high, no grab bar'],
   famWait: ['已告诉康复人员，等待最终确认。', 'The rehab team has been told and will make the final call.'],
-  agentName: ['路标', 'Pin'],
-  agentSub: ['我只回答规则和审核过的内容，危险情况直接交给专业人员。', 'I only answer from rules and reviewed content. Anything dangerous goes straight to a professional.'],
+  agentName: ['瑞瑞', 'Riri'],
+  agentSub: ['把今天说清楚，陪你走下一步。', 'One clear next step. I’m here with you.'],
   agToday: ['我今天应该做什么', 'What should I do today'],
   agCant: ['这件事我做不到', 'I can’t do this one'],
   agNormal: ['这个情况正常吗', 'Is this normal'],
@@ -147,9 +174,9 @@ const T = {
   agNormalPh: ['说说你看到或感觉到的情况', 'Describe what you see or feel'],
   agTalkPh: ['想说什么都可以', 'Say anything you like'],
   agSend: ['发送', 'Send'],
-  agFine: ['路标不是医生，也不是心理治疗。', 'Pin is not a doctor and not therapy.'],
-  agShared: ['已发给康复人员，家属看不到。', 'Sent to the rehab team. Family can’t see it.'],
-  agReported: ['已报告，康复人员会收到提醒。', 'Reported. The rehab team has been alerted.'],
+  agFine: ['瑞瑞不做诊断、不修改医嘱；危险信号由固定规则优先处理。', 'Riri never diagnoses or changes orders. Safety rules always come first.'],
+  agShared: ['已保存到康复演示视图；没有发送给真实人员。', 'Saved to the rehab demo view; not sent to a real professional.'],
+  agReported: ['已生成演示提醒，可在康复视图查看；没有通知真实人员。', 'A demo alert is available in the rehab view; no real professional was notified.'],
   pSubDone: ['今天的三件事都完成了。', 'All three are done today.'],
   ckTitle: ['先花 10 秒，告诉我们身体怎样', 'First, 10 seconds on how your body is'],
   ckWhy: ['身体的情况决定今天的任务要不要调整。', 'How your body is decides whether today’s plan changes.'],
@@ -165,7 +192,7 @@ const T = {
   fever: ['体温 38℃ 或以上', 'Temperature 38°C or higher'],
   fall: ['摔倒了', 'I fell'],
   noteLabel: ['想说什么都可以写，系统会帮你整理', 'Say anything; we’ll sort it out'],
-  private: ['这段话只给康复人员看', 'Only the rehab team can read this'],
+  private: ['在家属演示视图隐藏（非账号授权）', 'Hide from the family demo view (not account access control)'],
   sendCk: ['提交', 'Send'],
   ckDone: ['今天已经反馈：疼痛 {p}/10，心情「{m}」。', 'Checked in today: pain {p}/10, mood “{m}”.'],
   ckEdit: ['更新', 'Update'],
@@ -222,7 +249,7 @@ const T = {
   fRed: ['出现这些情况，立刻联系专业人员', 'Contact a professional right away if you see'],
   ptToday: ['他今天的反馈', 'Their check-in today'],
   noCheckin: ['他今天还没反馈。', 'No check-in yet today.'],
-  privateHidden: ['（有一段只给康复人员看的话）', '(includes a note only for the rehab team)'],
+  privateHidden: ['（当前家属演示视图隐藏了备注）', '(note hidden in this family demo view)'],
   notesTitle: ['记下你观察到的', 'Note what you noticed'],
   notePh: ['比如：今天他自己推轮椅去了洗手池', 'e.g. Today they wheeled to the sink on their own'],
   saveNote: ['保存', 'Save'],
@@ -338,7 +365,7 @@ const T = {
   injYellow: ['疼痛上升和情绪低落', 'Pain up, mood low'],
   injRed: ['伤口异常', 'Wound problem'],
   reset: ['重置', 'Reset'],
-  resetConfirm: ['重置所有演示数据，回到林凯的第 9 天？', 'Reset all demo data back to Kai Lin’s day 9?'],
+  resetConfirm: ['重置所有演示数据，回到合成示例A的第 9 天？', 'Reset all demo data back to Demo case A’s day 9?'],
   injNote: ['残端下面又渗出黄色的液体，有点味道', 'More yellow fluid under the stump, and a smell'],
   loadErr: ['加载失败：{e}', 'Could not load: {e}'],
 };
@@ -347,7 +374,7 @@ const T = {
 const WHY = {
   pyramid: [['结论先行', '首页第一句就是答案，后面每一段都在支撑它。', '金字塔原理，Minto 1987'], ['Answer first', 'The first line is the answer; every section below supports it.', 'Pyramid Principle, Minto 1987']],
   conflict: [['先讲冲突，再给方法', '情境、冲突、问题、答案。没有冲突，方法就没有分量。', 'SCQA 结构'], ['Conflict before method', 'Situation, complication, question, answer. Without the gap, the method has no weight.', 'SCQA']],
-  story: [['讲一个人，不讲一群人', '一个具体的人比一组统计更能被理解和记住，所以全站都用陈明的故事。', '可识别受害者效应，Small et al. 2007'], ['One person, not a population', 'One specific person is understood and remembered better than statistics, so the whole site follows Chen Ming.', 'Identifiable victim effect, Small et al. 2007']],
+  story: [['讲一个人，不讲一群人', '一个具体的人比一组统计更能被理解和记住，所以演示沿用林凯的故事。', '可识别受害者效应，Small et al. 2007'], ['One person, not a population', 'One specific person is understood and remembered better than statistics, so the demo follows Lin Kai.', 'Identifiable victim effect, Small et al. 2007']],
   scaffold: [['脚手架逐步撤除', '先在支架里做到，再一层层撤掉支架。四级就是撤架子的顺序。', 'Wood, Bruner & Ross 1976'], ['Scaffolding, then fading', 'Succeed with support first, then remove it layer by layer. The four levels are that order.', 'Wood, Bruner & Ross 1976']],
   evidence: [['用研究建立信任', '每个设计都标出处，并说清楚研究能证明什么、不能证明什么。', '可解释性'], ['Trust through evidence', 'Each choice cites its source and says what the research does and does not show.', 'Explainability']],
   trust: [['先说边界', '医疗产品先让人放心，再让人心动。说清楚不做什么，比说做什么更能建立信任。', '风险感知'], ['Boundaries first', 'In health, safety comes before appeal. Saying what we won’t do builds more trust than promises.', 'Risk perception']],
@@ -374,7 +401,7 @@ const WHY = {
   related: [['三个人一起写', '患者、家属、康复人员各写一段，满足联结需要。', '自我决定理论'], ['Written by all three', 'Patient, family and rehab team each write a part: relatedness.', 'Self-determination theory']],
   source: [['原文高亮', '每个提取结果都对应原文，看得见来源才敢相信。', '可解释性'], ['Source highlighting', 'Each field maps to the source text; seeing the source earns trust.', 'Explainability']],
   human: [['人在回路', 'AI 只提取，人逐条确认，AI 不越过医疗边界。', '人机协作'], ['Human in the loop', 'AI extracts, a person confirms each line; AI never crosses the clinical line.', 'Human-in-the-loop']],
-  agent: [['四扇固定的门', '智能体只开四扇门，回答只来自规则和审核过的内容；问它「这个情况正常吗」，它永远不会回答「正常」。', '安全边界'], ['Four fixed doors', 'The agent opens only four doors and answers only from rules and reviewed content; asked “is this normal?”, it never says yes.', 'Safety boundary']],
+  agent: [['可以直接说，安全规则优先', '四个入口只是快捷提示。瑞瑞不诊断、不改医嘱，危险信号先由固定规则处理。', '安全边界'], ['Open conversation, safety first', 'The four prompts are shortcuts. Riri does not diagnose or change orders; fixed rules handle danger signals first.', 'Safety boundary']],
   upflow: [['升级要三个人点头', '系统只提建议；患者决定愿不愿意，家属确认家里条件，康复人员最后拍板。', '自我决定理论；人在回路'], ['Three people say yes', 'The system only suggests; the patient decides, family checks the home, the rehab team makes the final call.', 'Self-determination; human-in-the-loop']],
   route: [['地图，而不是完成率圆环', '90 格路线让人看到自己在整段旅程中的位置，比「今天 0/3」更有方向感。', '目标梯度；赋予进度'], ['A map, not a completion ring', 'A 90-cell route shows where you are on the whole journey; that gives more direction than “0/3 today”.', 'Goal gradient; endowed progress']],
   stall: [['停滞也是例外', '同一等级停 7 天以上会被列出来，专业人员可以及时换方法。', '例外管理'], ['Stalls are exceptions too', 'Seven days at one level gets listed so the team can change approach in time.', 'Management by exception']],
@@ -403,27 +430,33 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const E = (o) => esc(tr(o));
 const C = () => (S.lang === 'zh' ? '：' : ': ');
 const SEMI = () => (S.lang === 'zh' ? '；' : '; ');
-const pname = (d) => (S.lang === 'en' && d.profile.nameEn) || d.profile.name || '';
+const pname = (d) => d.id?.startsWith('demo-lin') ? (S.lang === 'en' ? 'Synthetic demo case A' : '合成演示病例A') : (S.lang === 'en' && d.profile.nameEn) || d.profile.name || '';
 const why = (k) => {
+  if (location.hash.split('/')[1] !== 'why') return '';
   const [name, text, cite] = tt(WHY[k]);
-  return `<aside class="why" aria-hidden="${!S.why}"><b>${esc(name)}</b>${esc(text)} <cite>${esc(cite)}</cite></aside>`;
+  return `<details class="why" aria-hidden="${!S.why}"><summary>${S.lang === 'zh' ? '查看设计说明' : 'Read design note'}</summary><div><b>${esc(name)}</b>${esc(text)} <cite>${esc(cite)}</cite></div></details>`;
 };
 
 // ---------- api ----------
 async function api(path, body) {
-  const res = await fetch(`/api${path}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(tr(data.i18n) || data.error || res.statusText);
-  return data;
+  const context = requestContext();
+  const dayHeaders = S.data?.private && S.dataPid === S.pid && path.startsWith(`/patients/${S.pid}/`) ? { 'X-Restart90-Day': String(S.data.day) } : {};
+  try {
+    const res = await fetch(`/api${path}`, { credentials: 'include', cache: 'no-store', ...(body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json', ...accountHeaders(), ...dayHeaders }, body: JSON.stringify(body) }) });
+    const data = await res.json().catch(() => ({}));
+    assertContext(context);
+    if (!res.ok) { const error = new Error(tr(data.i18n) || data.error || res.statusText); error.status = res.status; throw error; }
+    return data;
+  } catch (error) { assertContext(context); throw error; }
 }
 
 // A page read that finishes after the user has already moved to another page is dropped,
 // so a slow response can never paint an old page over the new one.
 const STALE = new Error('stale');
 async function read(path) {
-  const h = location.hash;
+  const context = requestContext();
   const d = await api(path);
-  if (location.hash !== h) throw STALE;
+  assertContext(context);
   return d;
 }
 
@@ -441,7 +474,7 @@ function toast(msg, err = false) {
 const LV = (i, role = 'patient') => tr(S.meta.levels[i][role]);
 const trackName = (tk) => t({ body: 'trackBody', life: 'trackLife', social: 'trackSocial' }[tk] || 'trackBody');
 const chip = (level, role = 'patient') => `<span class="chip lv${level}">${esc(LV(level, role))}</span>`;
-const sourcesLine = (keys) => `<div class="src">${t('source')}${keys.map((k) => esc(tr(S.meta.sources[k]))).join(SEMI())}</div>`;
+const sourcesLine = (keys) => `<details class="task-sources"><summary>${S.lang === 'zh' ? '医嘱与内容来源' : 'Orders and sources'}</summary><div class="src">${t('source')}${keys.map((k) => esc(tr(S.meta.sources[k]))).join(SEMI())}</div></details>`;
 const moodWord = (m) => (m ? tt(T.moods)[m - 1] : '-');
 
 // The small version of the Handover Line: four stops on a rail, filled up to the current level.
@@ -534,6 +567,7 @@ const meter = (pct) => `<div class="meter"><div class="label"><span>${t('autonom
 
 // Pictograms, drawn on a 20-unit grid with one stroke weight, like a signage set.
 const ICONS = {
+  home: '<path d="M3 9l7-6 7 6M5 8v9h10V8M8 17v-5h4v5"/>',
   p: '<circle cx="10" cy="5" r="2.6"/><path d="M10 9v5.5M6 11.5h8M10 14.5l-2.6 4M10 14.5l2.6 4"/>',
   f: '<circle cx="7" cy="5.5" r="2.3"/><circle cx="14" cy="6.5" r="1.9"/><path d="M7 9v5M4 11h6M7 14l-2 4M7 14l2 4M14 10v4M12 12h4M14 14l-1.5 3.5M14 14l1.5 3.5"/>',
   r: '<rect x="4" y="3.5" width="12" height="14" rx="1.5"/><path d="M10 7v6M7 10h6"/>',
@@ -545,19 +579,33 @@ const icon = (k) => `<svg class="ico" viewBox="0 0 20 20" aria-hidden="true">${I
 
 function header(active) {
   const id = S.pid;
-  const link = (href, key, name) => `<a href="${href}"${active === name ? ' aria-current="page"' : ''}>${icon(name)}<span>${t(key)}</span></a>`;
+  const link = (href, key, name) => `<a href="${href}"${active === name ? ' aria-current="page"' : ''}>${icon(name)}${key === 'navWhy' ? `<span class="nav-full">${t(key)}</span><span class="nav-compact" aria-label="${t(key)}">${S.lang === 'zh' ? '说明' : 'About'}</span>` : `<span>${t(key)}</span>`}</a>`;
+  const landing = active === 'home';
+  const homeLabel = (zh, en) => S.lang === 'en' ? en : zh;
+  let nav = landing
+    ? `<a href="#/map/demo-lin">${t('navMap')}</a><a href="#/" data-act="scroll-to" data-target="roles-section">${homeLabel('三端协作', 'Three views')}</a><a href="#/" data-act="riri-toggle">Riri</a><a href="#/why">${t('navWhy')}</a>`
+    : `${link('#/', 'navHome', 'home')}${link(`#/p/${id}`, 'navPatient', 'p')}${link(`#/f/${id}`, 'navFamily', 'f')}${link(`#/r`, 'navRehab', 'r')}${link(`#/map/${id}`, 'navMap', 'map')}${link('#/why', 'navWhy', 'why')}`;
+  if (accountState().user) {
+    const mine = `<a href="#/profiles">${homeLabel('我的档案', 'My records')}</a>`;
+    if (S.data?.private && S.dataPid === id && ['p','f','r','map'].includes(active)) {
+      const allowed = S.data.accessRole || S.data.access?.role;
+      const view = {patient:'p',family:'f',rehab:'r'}[allowed] || 'p';
+      const key = {p:'navPatient',f:'navFamily',r:'navRehab'}[view];
+      nav = `${link('#/', 'navHome', 'home')}${mine}${link(`#/${view}/${id}`,key,view)}${link(`#/map/${id}`, 'navMap', 'map')}${link('#/why','navWhy','why')}`;
+    } else nav = mine + nav;
+  }
   document.getElementById('top').innerHTML = `<div class="wrap">
     <a class="brand" href="#/">${pin(15)}<b>ReStart90</b><span>${t('brandSub')}</span></a>
     <nav class="roles" aria-label="views">
-      ${link(`#/p/${id}`, 'navPatient', 'p')}${link(`#/f/${id}`, 'navFamily', 'f')}${link(`#/r`, 'navRehab', 'r')}${link(`#/map/${id}`, 'navMap', 'map')}${link('#/start', 'navNew', 'start')}${link('#/why', 'navWhy', 'why')}
+      ${nav}
     </nav>
-    <div class="tools"><button class="pill-btn" data-act="why" aria-pressed="${S.why}">${t('whyBtn')}</button><button class="pill-btn" data-act="lang">${t('langBtn')}</button></div>
+    <div class="tools"><a class="header-new-profile" href="#/start"${active === 'start' ? ' aria-current="page"' : ''}>${t('navNew')}</a>${active === 'why' ? `<button class="pill-btn" data-act="why" aria-pressed="${S.why}">${t('whyBtn')}</button>` : ''}<button class="pill-btn" data-act="lang">${t('langBtn')}</button></div>
   </div>`;
 }
 
 function demobar(show) {
   const el = document.getElementById('demobar');
-  if (!show || !S.data) { el.innerHTML = ''; return; }
+  if (!show || !S.data || S.data.private) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="demobar" role="toolbar" aria-label="${t('demo')}">
     <b>${t('demo')}　${t('day', { d: S.data.day })}</b>
     <button data-act="advance">${t('nextDay')}</button>
@@ -604,6 +652,72 @@ function heroRoute(day) {
   </div>`;
 }
 
+// A real slice of the product, not a decorative illustration. The landing hero uses the
+// same demo data as the working patient view, so the first screen already explains what
+// ReStart90 actually does.
+function heroProduct(d, day, ability) {
+  const task = d?.tasks?.main?.find((x) => x.kind === 'ability' && x.ability === ability)
+    || d?.tasks?.main?.find((x) => x.kind === 'ability');
+  const life = task ? E(task.life || task.name) : (S.lang === 'en' ? 'Wash my face and brush my teeth' : '自己洗脸、刷牙');
+  const patient = task ? E(task.patient) : (S.lang === 'en' ? 'You do the steps you can.' : '能自己完成的步骤，由你来做。');
+  const family = task ? E(task.family) : (S.lang === 'en' ? 'Prepare the items, then step back.' : '家属准备好用品，然后适当放手。');
+  const autonomy = d?.autonomy ?? 13;
+  const role = (k, cls) => `<span class="hero-role ${cls}">${icon(k)}${t(k === 'p' ? 'navPatient' : k === 'f' ? 'navFamily' : 'navRehab')}</span>`;
+  return `<div class="hero-stage" id="product-preview" aria-label="${t('heroDemo')}">
+    <div class="hero-orbit" aria-hidden="true"></div>
+    ${role('p', 'rp')}${role('f', 'rf')}${role('r', 'rr')}
+    <article class="hero-product">
+      <div class="hero-product-head"><span class="hero-day num">${t('day', { d: day })}</span><span class="hero-auto"><b class="num">${autonomy}%</b>${t('autonomy')}</span></div>
+      <div class="hero-mini-route"><i style="width:${Math.max(4, day / 90 * 100)}%"></i><b style="left:${Math.max(4, day / 90 * 100)}%"></b></div>
+      <p class="hero-kicker">${t('todayThings')}</p>
+      <h2>${life}</h2>
+      <div class="hero-two"><p><span>${t('navPatient')}</span>${patient}</p><p><span>${t('navFamily')}</span>${family}</p></div>
+      <div class="hero-agent"><span class="hero-agent-mark">${pin(16)}</span><p><b>${t('agentName')}</b><small>${S.lang === 'en' ? 'One clear next step, with safety rules built in.' : '把今天要做的事说清楚，安全规则始终在场。'}</small></p><span class="hero-agent-live">DEMO DATA</span></div>
+      <a class="text-link" href="#/p/demo-lin" data-act="use-demo">${t('heroDemo')} <span>↗</span></a>
+    </article>
+  </div>`;
+}
+
+function filmStage() {
+  const zh = S.lang === 'zh';
+  const cover = '/assets/launch-film-cover.png';
+  return `<section class="film-section launch-film-section" id="film-story" aria-label="${zh ? 'ReStart90宣传片放映区' : 'ReStart90 launch film'}"><div class="wrap">
+    <div class="film-heading"><span>RESTART90 / A LIFE IN FOCUS</span><span>${zh ? '宣传片 · 75秒' : 'LAUNCH FILM · 75 SECONDS'}</span></div>
+    <div class="film-frame launch-film-frame" id="film-frame">
+      <button class="launch-film-cover" data-launch-film-play aria-label="${zh ? '播放宣传片，有声音' : 'Play the film with sound'}"><img src="${cover}" alt="${zh ? '银匠林凯坐在木屋门前，拐杖下长出金色花树' : 'Silversmith Lin Kai at his wooden home, a golden flowering tree growing below his crutch'}"><span class="launch-film-play-mark" aria-hidden="true">▶</span></button>
+      <video id="brand-film" controls playsinline preload="none" poster="${cover}" data-film-src="/assets/restart90-launch-film.mp4" aria-label="ReStart90 Launch Film V2" hidden></video>
+      <div class="launch-film-loading" role="status" hidden>${zh ? '正在加载影片…' : 'Loading the film…'}</div>
+    </div>
+    <div class="launch-film-footer"><button class="btn sun" data-launch-film-play><span aria-hidden="true">▶</span> ${zh ? '播放宣传片' : 'Play the film'}</button><a class="text-link" href="#/p/demo-lin" data-act="use-demo">${zh ? '体验实际记录' : 'Try the working demo'} ↗</a></div>
+    <p class="launch-film-disclaimer">${zh ? '人物与剧情为概念表达，并非真实患者康复结果；画面不作为医疗指导。临床示例A与影片人物分开展示。' : 'The character and story are conceptual, not evidence of a real patient’s recovery. This is not medical guidance. Clinical demo case A is separate from the film character.'}</p>
+  </div></section>`;
+}
+
+function homePrinciples() {
+  const zh = S.lang === 'zh';
+  const reasons = zh ? [
+    ['今天怎么做？', '把出院资料整理成待确认的每日任务，不再自己从一堆资料里找下一步。'],
+    ['谁该帮多少？', '患者先参与，家属按范围协助，在安全和确认的前提下逐步放手。'],
+    ['变化有没有被看见？', '记录实际做到的事，让获得授权的参与者查看变化；瑞瑞解释下一步，不代替你确认。'],
+  ] : [
+    ['What do I do today?', 'Discharge information becomes daily tasks for review, rather than another pile of notes.'],
+    ['How much help is enough?', 'The patient participates; family helps within agreed limits, then steps back when safe and confirmed.'],
+    ['Is progress being seen?', 'Record what actually happened and share it with authorized participants. Riri explains the next step; you confirm.'],
+  ];
+  const steps = zh ? ['先在帮助中学习和参与。', '一起完成，自己多做一点。', '自己尝试，协助者在旁保护。', '独立完成，记录真实结果。'] : ['Learn and participate with help.', 'Do it together; take on a little more.', 'Try it yourself, with someone standing by.', 'Do it independently and record the result.'];
+  return `<section class="home-purpose" id="home-purpose"><div class="wrap">
+    <p class="purpose-kicker">${zh ? '为什么做 ReStart90' : 'WHY RESTART90'}</p>
+    <h2>${zh ? '出院不是结束，<br>生活还要继续。' : 'Discharge is not the end.<br>Life still needs to move forward.'}</h2>
+    <p class="purpose-lead">${t('gapTitle')}。${zh ? '我们想接上医嘱与日常之间的这段空白。' : 'We want to bridge the gap between care instructions and daily life.'}</p>
+    <div class="purpose-reasons">${reasons.map(([title, body], i) => `<article><span class="purpose-number">0${i + 1}</span><h3>${title}</h3><p>${body}</p></article>`).join('')}</div>
+    <p class="purpose-solo">${zh ? '没有家属也能先建档、记录；有人参与时，再邀请协作。瑞瑞当前为规则演示，不进行诊断。' : 'Start a profile and record on your own; invite others when available. Riri currently uses demo rules and does not diagnose.'}</p>
+    <div class="purpose-handover"><h3>${zh ? '把生活还给自己，不是突然放手。' : 'Handing life back does not mean letting go all at once.'}</h3><p>${t('methodIntro')}</p>
+    <ol class="purpose-steps">${[1, 2, 3, 4].map((n) => `<li><span class="purpose-step-number">0${n}</span><h4>${esc(LV(n))}</h4><p>${steps[n - 1]}</p></li>`).join('')}</ol>
+    <p class="purpose-limit">${zh ? '这是每项能力的四个协助等级，不是按日期自动升级；仍须满足安全条件并由相应人员确认。' : 'These are assistance levels for each ability, not automatic date-based upgrades. Safety criteria and the relevant confirmations still apply.'}</p></div>
+    <div class="purpose-research"><p>${zh ? '这是产品机制，整体疗效仍需用户测试和临床验证。' : 'This explains the mechanism. Overall effectiveness still needs user testing and clinical validation.'}</p><a class="text-link" href="#/why">${zh ? '研究与设计依据' : 'Research and design details'} <span>↗</span></a></div>
+  </div></section>`;
+}
+
 // Scroll story: the stage stays on screen while four markers scroll past; each one moves Kai a stop forward.
 function storySection(ability) {
   const ab = S.meta.abilities.find((a) => a.id === ability);
@@ -643,36 +757,55 @@ function watchStory() {
 async function viewLanding() {
   header('home');
   demobar(false);
-  let day = 9, ability = 'grooming';
+  let day = 9, ability = 'grooming', demo = null;
   try {
-    const d = await read('/patients/demo-lin?role=patient');
-    day = d.day;
-    ability = (d.tasks.main.find((x) => x.kind === 'ability' && x.track === 'life') || d.tasks.main.find((x) => x.kind === 'ability'))?.ability || ability;
+    demo = await read('/patients/demo-lin?role=patient');
+    day = demo.day;
+    ability = (demo.tasks.main.find((x) => x.kind === 'ability' && x.track === 'life') || demo.tasks.main.find((x) => x.kind === 'ability'))?.ability || ability;
   } catch (e) { if (e === STALE) throw e; /* the page still works with the default day */ }
+  if (S.dataPid !== S.pid) {
+    try { await loadPatient(S.pid); }
+    catch (error) {
+      if (error === STALE || error.status !== 404) throw error;
+      S.data = null; S.dataPid = null; S.ui.agent = null;
+      await loadPatient('demo-lin', 'patient');
+      toast(S.lang === 'zh' ? '之前的临时档案在当前浏览器无法访问。现在打开的是合成演示，不是旧记录。' : 'The previous temporary profile is not accessible in this browser. This is the synthetic demo, not recovered records.', true);
+    }
+  }
   const intro = !S.ui.introDone;
   S.ui.introDone = true;
   const roles = [['p', 'navPatient', 'dayP', 'dayPItems'], ['f', 'navFamily', 'dayF', 'dayFItems'], ['r', 'navRehab', 'dayR', 'dayRItems']];
   document.getElementById('app').innerHTML = `
   <section class="xhero${intro ? ' intro' : ''}">
     <div class="wrap xhero-in">
-      <p class="xhero-scope">${t('heroScope')}</p>
-      <h1>${t('heroTitle')}</h1>
-      <div class="xhero-foot">
-        <p class="lead">${t('heroLead')}</p>
-        <div class="actions"><a class="btn sun" href="#/p/demo-lin" data-act="use-demo">${t('heroDemo')}</a><a class="btn outline-light" href="#/start">${t('heroStart')}</a></div>
+      <div class="xhero-copy">
+        <p class="xhero-scope"><span></span>${t('heroScope')}</p>
+        <p class="hero-question">${S.lang === 'zh' ? '遭遇重创，出院后怎么把生活接回来？' : 'After a life-changing injury, what comes next at home?'}</p>
+        <h1>${t('heroTitle')}</h1>
+        <p class="hero-subline">${S.lang === 'zh' ? '一个人也能开始。' : 'Start on your own.'}</p>
+        <p class="lead">${S.lang === 'zh' ? '整理出院小结，生成待确认的90天档案与每日任务。' : 'Turn discharge information into a 90-day demo profile and daily tasks for review.'}</p>
+        <div class="home-entry-grid" aria-label="${S.lang === 'zh' ? '两种方式开始' : 'Two ways to begin'}">
+          <a class="home-entry primary" href="#/p/demo-lin" data-act="use-demo"><span class="entry-number">01</span><h2>${S.lang === 'zh' ? '看演示病例' : 'Try a demo case'}</h2><p>${S.lang === 'zh' ? '合成病例，可以操作和记录' : 'Synthetic data, working records'}</p><span class="entry-arrow" aria-hidden="true">↗</span></a>
+          <a class="home-entry" href="#/start"><span class="entry-number">02</span><h2>${S.lang === 'zh' ? '新建档案' : 'New profile'}</h2><p>${S.lang === 'zh' ? '整理自己的资料，建立新档案' : 'Start a profile with your own information.'}</p><span class="entry-arrow" aria-hidden="true">↗</span></a>
+        </div>
       </div>
-      ${why('pyramid')}
+      <div class="galaxy-stage" id="galaxy-stage" aria-label="${S.lang === 'zh' ? '可交互粒子场：移动鼠标，点击让粒子散开' : 'Interactive particles: move your mouse and click to scatter'}">
+        <div class="galaxy-top"><span><i></i> RESTART90</span><span>${String(day).padStart(2, '0')} / 90</span></div>
+        <div class="galaxy-bottom"><a class="home-story-cue" href="#/" data-act="scroll-to" data-target="film-story"><span class="story-cue-arrow" aria-hidden="true">↓</span><span class="story-cue-copy"><b>${S.lang === 'zh' ? '点这里，看产品故事' : 'Explore the product story'}</b><small>${S.lang === 'zh' ? '人物概念 · 宣传片展示区' : 'Character concept · Film showcase'}</small></span></a><span class="galaxy-hint">↗ ${S.lang === 'zh' ? '移动 · 点击' : 'MOVE · CLICK'}</span></div>
+      </div>
     </div>
-    <div class="wrap">${heroRoute(day)}</div>
-    <a class="scroll-hint" href="#story" data-act="to-story">${t('scrollHint')}</a>
+    <div class="wrap hero-route-bottom"><div class="route-caption"><span>YOUR JOURNEY, YOUR PACE</span><a href="#/map/demo-lin">${t('navMap')} ↗</a></div>${heroRoute(day)}</div>
   </section>
-  ${storySection(ability)}
-  <section class="xroles"><div class="wrap">
+  ${filmStage()}
+  ${homePrinciples()}
+  <details class="home-details" id="home-details"><summary><span class="showcase-summary-copy"><b>${S.lang === 'zh' ? '想看具体怎么用？' : 'Want to see how it works in practice?'}</b><small>${S.lang === 'zh' ? '展开查看记录演示、三端分工与安全说明' : 'Open the record demo, shared roles and safety details'}</small></span><span class="showcase-toggle" aria-hidden="true">↘</span></summary>
+  <section class="live-product band" id="product"><div class="wrap live-product-grid"><div><p class="eyebrow">01 / A SMALL STEP, TODAY</p><h2>${t('tcTitle', {d:day})}</h2><p class="xintro">${S.lang === 'zh' ? '不只是看见进度。<br>把今天真正做到的事，记下来。' : 'More than seeing progress.<br>Record the things you really did today.'}</p><a class="text-link" href="#/p/demo-lin" data-act="use-demo">${t('heroDemo')} <span>↗</span></a><p class="demo-disclosure">${S.lang === 'zh' ? '合成病例 · 演示数据' : 'Synthetic record · Demo data'}</p></div>${heroProduct(demo,day,ability)}</div></section>
+  <section class="xroles" id="roles-section"><div class="wrap"><p class="eyebrow">03 / ONE PLAN, THREE VIEWS</p>
     <h2>${t('dayTitle')}</h2><p class="xintro">${t('dayIntro')}</p>
-    <div class="xroles-grid">${roles.map(([k, n, q, items]) => `<article><div class="xr-ico">${icon(k)}</div><h3>${t(n)}</h3><p class="q">${t(q)}</p><ul>${tt(T[items]).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></article>`).join('')}</div>
+    <div class="xroles-grid">${roles.map(([k, n, q, items]) => `<article><div class="xr-ico">${icon(k)}</div><h3><span class="role-order">0${['p','f','r'].indexOf(k) + 1}</span>${t(n)}</h3><p class="q">${t(q)}</p><ul>${tt(T[items]).map((x) => `<li>${esc(x)}</li>`).join('')}</ul><a class="text-link" href="${k === 'p' ? '#/p/demo-lin' : k === 'f' ? '#/f/demo-lin' : '#/r'}">${S.lang === 'zh' ? '进入' + t(n) + '端' : 'Open ' + t(n)} <span>↗</span></a></article>`).join('')}</div>
     ${why('story')}
   </div></section>
-  <section class="xsafe"><div class="wrap xsafe-grid">
+  <section class="xsafe" id="safe"><div class="wrap xsafe-grid">
     <div><h2>${t('sfTitle')}</h2><p>${t('sfBody')}</p><a class="btn outline-light" href="#/p/demo-lin" data-act="use-demo">${t('sfTry')}</a></div>
     <pre class="ticket">${esc(t('sfTicket'))}</pre>
   </div></section>
@@ -680,6 +813,7 @@ async function viewLanding() {
     <h2>${t('ctaTitle')}</h2><p>${t('ctaBody')}</p>
     <div class="actions"><a class="btn" href="#/start">${t('heroStart')}</a><a class="btn ghost" href="#/p/demo-lin" data-act="use-demo">${t('heroDemo')}</a><a class="btn ghost" href="#/why">${t('whyLink')}</a></div>
   </div></section>
+  </details>
   <footer class="foot"><div class="wrap">${t('foot')}</div></footer>`;
   watchStory();
 }
@@ -697,6 +831,7 @@ function viewWhy() {
     </div>
     ${why('conflict')}
   </div></section>
+  ${storySection('grooming')}
   <section class="band"><div class="wrap">
     <h2>${t('methodTitle')}</h2><p class="intro">${t('methodIntro')}</p>
     <div class="hl-plate quiet">${handoverLine({ ability: 'grooming', level: 4, selected: 0, here: false })}</div>
@@ -705,7 +840,7 @@ function viewWhy() {
   <section class="band"><div class="wrap">
     <h2>${t('dayTitle')}</h2><p class="intro">${t('dayIntro')}</p>
     <div class="xroles-grid">
-      ${[['p', 'navPatient', 'dayP', 'dayPItems'], ['f', 'navFamily', 'dayF', 'dayFItems'], ['r', 'navRehab', 'dayR', 'dayRItems']].map(([k, n, q, items]) => `<article><div class="xr-ico">${icon(k)}</div><h3>${t(n)}</h3><p class="q">${t(q)}</p><ul>${tt(T[items]).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></article>`).join('')}
+      ${[['p', 'navPatient', 'dayP', 'dayPItems'], ['f', 'navFamily', 'dayF', 'dayFItems'], ['r', 'navRehab', 'dayR', 'dayRItems']].map(([k, n, q, items]) => `<article><div class="xr-ico">${icon(k)}</div><h3><span class="role-order">0${['p','f','r'].indexOf(k) + 1}</span>${t(n)}</h3><p class="q">${t(q)}</p><ul>${tt(T[items]).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></article>`).join('')}
     </div>
   </div></section>
   <section class="band"><div class="wrap">
@@ -725,10 +860,13 @@ function viewWhy() {
     ${why('fresh')}
   </div></section>
   <footer class="foot"><div class="wrap">${t('foot')}</div></footer>`;
+  watchStory();
 }
 
 // ---------- patient ----------
 function checkinPanel(d) {
+  const scope = draftScope(d);
+  if (S.ui.ckScope !== scope) { clearPatientDrafts(); S.ui.ckScope = scope; }
   const ck = d.checkin;
   if (ck && !S.ui.ckEdit) {
     return `<section class="panel"><div class="checkin-done"><span>${t('ckDone', { p: ck.pain ?? '-', m: moodWord(ck.mood) })}</span><button class="btn sm ghost" data-act="ck-edit">${t('ckEdit')}</button></div>${S.ui.ckResult || ''}</section>`;
@@ -817,25 +955,59 @@ function familyAsks(d) {
   }).join('');
 }
 
-function agentPanel(d) {
+function chatContext() {
+  if (!S.data || S.dataPid !== S.pid || (S.data.private && !accountId())) throw STALE;
+  return { ...requestContext(), private:!!S.data.private, day:recordDay(), agent:agentGeneration, key:`${accountId()}:${S.pid}` };
+}
+function assertChat(context) {
+  assertContext(context);
+  if (!S.data || S.dataPid !== context.pid || context.private !== !!S.data.private || context.day !== recordDay() || context.agent !== agentGeneration) throw STALE;
+}
+async function chatRequest(context, path, body) {
+  assertChat(context);
+  try { const result = await api(path, body); assertChat(context); return result; }
+  catch (error) { assertChat(context); throw error; }
+}
+function chatHistory(context) {
+  if (!context) { try { context = chatContext(); } catch { return []; } }
+  assertChat(context);
+  if (context.private) return (S.ui.privateChat?.[context.key] || []).slice(-16);
+  try { return JSON.parse(localStorage.getItem(`rs90.chat.${context.pid}`) || '[]').slice(-16); } catch { return []; }
+}
+function saveChat(text, r, context) {
+  assertChat(context);
+  const history = [...chatHistory(context), {role:'user',text}, {role:'assistant',text:tr(r.reply)}].slice(-16);
+  if (context.private) { (S.ui.privateChat ||= {})[context.key] = history; return; }
+  localStorage.setItem(`rs90.chat.${context.pid}`, JSON.stringify(history));
+}
+function agentPanel(d, floating = false) {
   const a = S.ui.agent || {};
-  const door = (k, label) => `<button aria-pressed="${a.intent === k}" data-act="agent" data-intent="${k}">${t(label)}</button>`;
   const r = a.res;
   const peer = r?.peer ? S.meta.peers[d.day % S.meta.peers.length] : null;
-  return `<section class="agent" id="agent">
-    <div class="ah">${pin(22)}<div><b>${t('agentName')}</b><div class="small muted">${t('agentSub')}</div></div></div>
-    <div class="doors">${door('today', 'agToday')}${door('cant', 'agCant')}${door('normal', 'agNormal')}${door('talk', 'agTalk')}</div>
-    ${a.intent === 'normal' || a.intent === 'talk' ? `<label class="f" style="margin:12px 0 0"><span class="sr">${t(a.intent === 'normal' ? 'agNormalPh' : 'agTalkPh')}</span><textarea id="ag-text" placeholder="${t(a.intent === 'normal' ? 'agNormalPh' : 'agTalkPh')}" style="min-height:64px">${esc(a.text || '')}</textarea></label><div style="margin-top:8px"><button class="btn sm" data-act="agent-send">${t('agSend')}</button></div>` : ''}
+  const src = floating ? 'float-ag-text' : 'ag-text';
+  const door = (k, label) => `<button aria-pressed="${a.intent === k}" data-act="agent" data-intent="${k}">${t(label)}</button>`;
+  const history = chatHistory();
+  return `<section class="agent" ${floating ? '' : 'id="agent"'}>
+    ${floating ? `<div class="riri-context">${esc(pname(d))} · ${t('day', {d:d.day})} <a href="${recordRoute(d, 'patient', S.pid)}">${t({family:'navFamily',rehab:'navRehab'}[d.accessRole || d.access?.role] || 'navPatient')} ↗</a></div>` : ''}
+    <div class="ah"><img class="riri-avatar" src="/assets/riri.png" alt=""><div><b>${t('agentName')} <span>RIRI</span></b><div class="small muted">${t('agentSub')}</div></div><span class="model-label">${r?.mode === 'ai' ? 'AI' : S.lang === 'zh' ? '演示模式' : 'Demo data'}</span></div>
+    <div class="chat-history" role="log" aria-live="polite">${history.length ? history.slice(0, r ? -1 : undefined).map(m => `<div class="chat-message ${m.role === 'user' ? 'user' : ''}">${esc(m.text)}</div>`).join('') : `<div class="chat-message">${S.lang === 'zh' ? '我在。今天最难的是什么？<br>你可以直接说，不必先选一个问题。' : 'I’m here. What feels hardest today?<br>You can say anything, no prompt needed.'}</div>`}
     ${r ? `<div class="bubble${r.danger ? ' danger' : ''}" role="status">${E(r.reply)}
-      ${r.choices ? `<div class="row">${r.choices.map((c) => `<button class="btn sm ghost" data-act="agent" data-intent="cant" data-task="${c.taskId}">${E(c.label)}</button>`).join('')}</div>` : ''}
+      ${r.choices ? `<div class="row">${r.choices.map(c => `<button class="btn sm ghost" data-act="agent" data-intent="cant" data-task="${c.taskId}">${E(c.label)}</button>`).join('')}</div>` : ''}
       ${peer ? `<blockquote class="peer">${E(peer.text)}<cite>${E(peer.who)}</cite></blockquote>` : ''}
-      ${r.actions ? `<div class="row">${r.actions.map((x) => `<button class="btn sm ${r.danger ? 'danger' : 'ghost'}" data-act="agent-do" data-do="${x.act}" data-task="${x.taskId || ''}">${E(x.label)}</button>`).join('')}</div>` : ''}
-      ${a.done ? `<div class="small" style="margin-top:8px"><b>${a.done}</b></div>` : ''}
-      ${r.danger ? `<p class="sos">${t('sos')}</p>` : ''}
-    </div>` : ''}
-    <div class="fine">${t('agFine')}</div>
-    ${why('agent')}
+      ${r.actions ? `<div class="row">${r.actions.map(x => `<button class="btn sm ${r.danger ? 'danger' : 'ghost'}" data-act="agent-do" data-do="${x.act}" data-task="${x.taskId || ''}">${E(x.label)}</button>`).join('')}</div>` : ''}
+      ${a.done ? `<div class="small"><b>${a.done}</b></div>` : ''}${r.danger ? `<p class="sos">${t('sos')}</p>` : ''}</div>` : ''}</div>
+    <div class="doors">${door('today','agToday')}${door('cant','agCant')}${door('normal','agNormal')}${door('talk','agTalk')}</div>
+    <div class="chat-composer"><textarea id="${src}" placeholder="${S.lang === 'zh' ? '直接告诉瑞瑞你想说什么…' : 'Tell Riri what’s on your mind…'}" aria-label="${t('agTalkPh')}" rows="2">${esc(a.text || '')}</textarea><button class="btn sun" data-act="agent-send" data-src="${src}" aria-label="${t('agSend')}">↑</button></div>
+    <div class="fine">${t('agFine')}</div>${why('agent')}
   </section>`;
+}
+function updateRiri() {
+  let root = document.getElementById('riri-root');
+  if (!root) { root = document.createElement('div'); root.id='riri-root'; document.body.append(root); }
+  const open = !!S.ui.ririOpen;
+  root.innerHTML = `${open ? `<button class="riri-backdrop" data-act="riri-toggle" tabindex="-1" aria-label="${S.lang === 'zh' ? '关闭瑞瑞对话' : 'Close Riri conversation'}"></button><div class="riri-drawer" role="dialog" aria-label="${t('agentName')}"><button class="riri-close" data-act="riri-toggle" aria-label="${S.lang === 'zh' ? '关闭对话' : 'Close conversation'}">×</button>${S.data ? agentPanel(S.data,true) : ''}</div>` : ''}<div class="riri-dock"><button class="riri-launcher" data-act="riri-toggle" aria-label="${S.lang === 'zh' ? '与瑞瑞对话' : 'Talk to Riri'}" aria-expanded="${open}"><img src="/assets/riri.png" alt="瑞瑞"><i></i></button></div>`;
+  root.querySelector('.chat-history')?.scrollTo(0,99999);
+  syncRiriPosition();
 }
 
 function abilityList(d, role) {
@@ -981,9 +1153,9 @@ async function viewRehabList() {
       <div class="head-stats"><div class="stat red"><b class="num">${sum('openAlerts')}</b><span>${t('rUrgent')}</span></div><div class="stat amber"><b class="num">${sum('pending')}</b><span>${t('rPending')}</span></div><div class="stat"><b class="num">${sum('overHelp')}</b><span>${t('rOver')}</span></div></div></div>
     ${why('exception')}
     <section class="panel"><table class="list"><thead><tr><th>${t('colPatient')}</th><th>${t('colDay')}</th><th>${t('colAuto')}</th><th>${t('rUrgent')}</th><th>${t('rPending')}</th><th>${t('rOver')}</th><th></th></tr></thead>
-    <tbody>${list.map((p) => `<tr><td><b>${esc((S.lang === 'en' && p.nameEn) || p.name)}</b></td><td>${t('day', { d: p.day })}<div class="small muted">${E(p.phase.name)}</div></td><td class="num">${p.autonomy}%</td>
+    <tbody>${list.map((p) => `<tr><td><b>${esc(p.id === 'demo-lin' ? (S.lang === 'en' ? 'Synthetic demo case A' : '合成演示病例A') : (S.lang === 'en' && p.nameEn) || p.name)}</b></td><td>${t('day', { d: p.day })}<div class="small muted">${E(p.phase.name)}</div></td><td class="num">${p.autonomy}%</td>
       <td>${p.openAlerts ? `<span class="chip red">${p.openAlerts}</span>` : '0'}</td><td>${p.pending + (p.planPending ? 1 : 0) ? `<span class="chip amber">${p.pending + (p.planPending ? 1 : 0)}</span>` : '0'}</td><td>${p.overHelp}</td>
-      <td><a class="btn sm ghost" href="#/r/${p.id}" data-act="pick" data-id="${p.id}">${t('open')}</a></td></tr>`).join('')}</tbody></table></section>
+      <td><a class="btn sm ghost" href="${recordRoute(p, 'rehab')}" data-act="pick" data-id="${p.id}">${t('open')}</a></td></tr>`).join('')}</tbody></table></section>
   </div></div>`;
 }
 
@@ -1066,7 +1238,7 @@ async function viewRehab(id) {
 
 // ---------- 90-day map + reviews ----------
 async function viewMap(id) {
-  await loadPatient(id, 'patient');
+  await loadPatient(id);
   const d = S.data;
   header('map');
   demobar(true);
@@ -1096,7 +1268,7 @@ async function viewMap(id) {
 
   document.getElementById('app').innerHTML = `<div class="page"><div class="wrap">
     <div class="head">
-      <div>${headMeta(d)}<h1>${t('mapTitle')}</h1><p class="sub">${t('mapSub')}</p></div>
+      <div>${headMeta(d)}<h1>${t('mapTitle')}</h1><p class="sub">${S.lang === 'zh' ? '先记录今天，再看这90天里生活的变化。' : 'Record today, then look back at how daily life is changing.'}</p></div>
       <div class="head-stats">
         <div class="stat"><b class="num">${t('things', { n: count(1, d1) })}</b><span>${t('famDay1')}</span></div>
         <div class="stat"><b class="num">${t('things', { n: count(1, dn) })}</b><span>${t('famNow')}</span></div>
@@ -1104,12 +1276,19 @@ async function viewMap(id) {
         ${meter(d.autonomy)}
       </div>
     </div>
-    <section class="panel">
+    ${alertBanners(d, 'patient')}${holdBanner(d)}
+    <section class="panel map-overview">
+      <div class="map-overview-top"><div><span>${S.lang === 'zh' ? '我的90天' : 'MY 90 DAYS'}</span><h2>${t('day', { d: d.day })}<small> / 90</small></h2></div><a class="btn sun" href="#/p/${encodeURIComponent(id)}">${S.lang === 'zh' ? '记录今天' : 'Record today'} <span>↗</span></a></div>
+      ${routeStrip(map)}
+      <p>${S.lang === 'zh' ? '一步一步看见生活的变化。今天怎么过，先从记录开始。' : 'See daily life change, one step at a time. Begin by recording today.'}</p>
+    </section>
+    <section class="panel map-matrix">
+      <p class="map-guide">${t('mapSub')}</p>
       <div class="map"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${t('mapTitle')}">${phases}${labels}${cells}${today}</svg></div>
       <div class="legend" style="margin-top:10px">${[1, 2, 3, 4].map((i) => `<span><svg width="12" height="12"><rect width="12" height="12" rx="2" fill="${color[i]}"/></svg>${esc(LV(i))}</span>`).join('')}<span><svg width="12" height="12"><rect width="12" height="12" rx="2" fill="var(--red)"/></svg>${t('redFlags')}</span></div>
       ${why('mapWhy')}
     </section>
-    <div class="sec"><h2>${t('rvTitle')}</h2></div>
+    <div class="sec review-heading"><h2>${S.lang === 'zh' ? '复盘' : 'Review'}</h2><p>${S.lang === 'zh' ? '回顾一段时间，把需要帮助的事说清楚。' : 'Look back over a period and make support needs clear.'}</p></div>
     <section class="panel" id="review"></section>
   </div></div>`;
   S.ui.review = S.ui.review && S.ui.reviewPid === id ? S.ui.review : { type: 'w', index: Math.ceil(d.day / 7) };
@@ -1117,15 +1296,49 @@ async function viewMap(id) {
   await renderReview(id);
 }
 
+function reviewBusy(root, busy) {
+  if (!root?.isConnected) return;
+  root.setAttribute('aria-busy', String(busy));
+  root.querySelectorAll('textarea,[data-act="save-review"]').forEach(node => { node.disabled = busy; });
+  root.querySelector('.review-loading')?.remove();
+  if (busy && root.querySelector('[data-review-picker]')) {
+    const message = document.createElement('p'); message.className = 'review-loading';
+    message.setAttribute('role', 'status');
+    message.textContent = S.lang === 'zh' ? '正在读取这段复盘…' : 'Loading this review…';
+    root.querySelector('.review-picker')?.after(message);
+  }
+}
+
 async function renderReview(id) {
   const d = S.data;
   const { type, index } = S.ui.review;
-  const rv = await read(`/patients/${id}/review?type=${type}&index=${index}`);
+  const request = (S.ui.reviewRequest || 0) + 1;
+  S.ui.reviewRequest = request;
+  const root = document.getElementById('review');
+  if (!root) return;
+  reviewBusy(root, true);
+  let rv;
+  try { rv = await read(`/patients/${id}/review?type=${type}&index=${index}`); }
+  catch (error) {
+    if (request === S.ui.reviewRequest && root.isConnected) {
+      const last = S.ui.reviewRendered;
+      if (last?.pid === id) {
+        S.ui.review = { type: last.type, index: last.index };
+        const selector = root.querySelector('[data-review-picker]');
+        if (selector) selector.value = `${last.type}:${last.index}`;
+      }
+      reviewBusy(root, false);
+    }
+    throw error;
+  }
+  if (request !== S.ui.reviewRequest || S.pid !== id || !root.isConnected) return;
+  root.dataset.patientId = id; root.dataset.period = rv.period;
+  S.ui.reviewRendered = { pid: id, type, index, period: rv.period };
   const weeks = Math.ceil(d.day / 7), months = Math.ceil(d.day / 30);
-  const tab = (ty, n) => `<button aria-pressed="${type === ty && index === n}" data-act="review" data-type="${ty}" data-index="${n}">${t(ty === 'w' ? 'week' : 'month', { n })}</button>`;
+  const tab = (ty, n) => `<option value="${ty}:${n}"${type === ty && index === n ? ' selected' : ''}>${t(ty === 'w' ? 'week' : 'month', { n })}</option>`;
   const list = (arr, fn) => (arr.length ? `<ul>${arr.map(fn).join('')}</ul>` : `<p class="empty">${t('rvNone')}</p>`);
-  document.getElementById('review').innerHTML = `
-    <div class="tabs">${Array.from({ length: weeks }, (_, i) => tab('w', i + 1)).join('')}${Array.from({ length: months }, (_, i) => tab('m', i + 1)).join('')}</div>
+  root.innerHTML = `
+    <label class="review-picker"><span>${S.lang === 'zh' ? '选择复盘时段' : 'Choose a review period'}</span><select data-review-picker>${Array.from({ length: weeks }, (_, i) => tab('w', i + 1)).join('')}${Array.from({ length: months }, (_, i) => tab('m', i + 1)).join('')}</select></label>
     <p style="margin-bottom:4px"><b>${t('day', { d: rv.from })} – ${t('day', { d: rv.to })}</b>　${t('rvAuto', { a: rv.autonomyStart ?? '-', b: rv.autonomyEnd })}</p>
     <p class="small muted">${t('rvStats', { d: rv.counts.done, p: rv.counts.partial, c: rv.counts.cant, a: rv.alerts, o: rv.overHelp })}</p>
     <div class="review-grid" style="margin-top:20px">
@@ -1137,19 +1350,23 @@ async function renderReview(id) {
     ${why('reviewWhy')}
     <h3 style="margin:28px 0 12px">${t('rvVoices')}</h3>
     <div class="voices">${['patient', 'family', 'rehab'].map((r) => `<label class="f"><span>${tt(T.by[r])}</span><textarea id="rv-${r}" placeholder="${tt(T.rvPh[r])}">${esc(rv.notes[r] || '')}</textarea>
-      <button class="btn sm ghost" style="margin-top:8px" data-act="save-review" data-role="${r}" data-period="${rv.period}">${t('rvSave')}</button></label>`).join('')}</div>
+      <button class="btn sm ghost" style="margin-top:8px" data-act="save-review" data-role="${r}" data-period="${rv.period}" data-patient-id="${esc(id)}">${t('rvSave')}</button></label>`).join('')}</div>
     ${why('related')}`;
+  reviewBusy(root, false);
+  enhanceReview(S); applyPrivateUI();
 }
 
 // ---------- upload wizard ----------
 function viewStart() {
   header('start');
+  if (!accountState().user) { demobar(false); rememberAccountTarget('#/start'); showAccount(document.getElementById('app'), ''); return; }
   demobar(false);
   const w = (S.wizard ||= { step: 1, text: '', pdf: null, fileName: '', result: null, confirm: {}, form: { pain: 3, confidence: 3, goals: [], home: { floor: 1 } } });
   const steps = ['wz1', 'wz2', 'wz3', 'wz4', 'wz5'];
   const stepper = `<ol class="stepper" style="grid-template-columns:repeat(5,1fr)">${steps.map((k, i) => `<li class="${i + 1 === w.step ? 'on' : i + 1 < w.step ? 'done' : ''}">${i + 1}　${t(k)}</li>`).join('')}</ol>`;
   const body = w.step === 1 ? wizardUpload(w) : w.step === 2 ? wizardConfirm(w) : w.step === 3 ? wizardHome(w) : wizardGoals(w);
   document.getElementById('app').innerHTML = `<div class="page"><div class="wrap"><div class="head"><div><h1>${t('wzTitle')}</h1><p class="sub">${t('wzSub')}</p></div></div>${stepper}${body}</div></div>`;
+  applyWorkspace('start', S);
 }
 
 function wizardUpload(w) {
@@ -1165,6 +1382,7 @@ function wizardUpload(w) {
       <span style="flex:1"></span>
       <button class="btn" data-act="wz-extract">${S.ui.extracting ? t('wzExtracting') : t('wzExtract')}</button>
     </div>
+    <details class="demo-privacy"><summary>${S.lang === 'zh' ? '合成测试小结与私人保存说明' : 'Test summaries and private storage'}</summary><p>${S.lang === 'zh' ? '新建的档案保存到已登录账号，手机和电脑登录同一账号可以查看。共享必须经持有人邀请，切换页面不会获得其他角色权限；手机号与医护资质未核验。医疗内容模板仍待临床审核，请先用下方合成小结测试，不把生成任务当成新处方。旧的未登录演示不自动转存。' : 'New records are saved to the signed-in account and can be read on phone and computer. Sharing requires an owner invitation; switching a page does not grant another role. Phone ownership and professional qualifications are not verified. Clinical templates still need review: test with synthetic summaries below, not as a new prescription. Old anonymous demos are not silently imported.'}</p><p><a href="/assets/test-cases/chen-fang.txt" download>${S.lang === 'zh' ? '下载陈芳合成小结' : 'Download Chen Fang test summary'}</a> · <a href="/assets/test-cases/wu-jianguo.txt" download>${S.lang === 'zh' ? '下载吴建国合成小结' : 'Download Wu Jianguo test summary'}</a></p></details>
   </section>`;
 }
 
@@ -1244,17 +1462,37 @@ function wizardGoals(w) {
 
 // ---------- data + routing ----------
 async function loadPatient(id, role) {
-  S.pid = id;
-  localStorage.setItem('rs90.pid', id);
-  S.data = await read(`/patients/${encodeURIComponent(id)}?role=${role}`);
+  selectPatient(id);
+  const context = requestContext(), generation = ++patientGeneration, chatGeneration = agentGeneration;
+  const guard = () => { assertContext(context); if (generation !== patientGeneration) throw STALE; };
+  try {
+    const data = await read(`/patients/${encodeURIComponent(id)}${role ? `?role=${role}` : ''}`);
+    guard();
+    let messages;
+    if (data.private) {
+      if (!context.account) throw STALE;
+      const result = await read(`/patients/${encodeURIComponent(id)}/chat`);
+      guard(); messages = result.messages || [];
+    }
+    guard();
+    if (S.data && recordDay(S.data) !== recordDay(data)) { contextGeneration++; clearPatientDrafts(); }
+    S.data = data; S.dataPid = id;
+    S.ui.ckScope ||= draftScope(data);
+    if (messages && chatGeneration === agentGeneration) (S.ui.privateChat ||= {})[`${context.account}:${id}`] = messages;
+  } catch (error) { guard(); throw error; }
 }
 
 async function render() {
+  const renderHash = location.hash || '#/';
   const [, view, id] = (location.hash || '#/').split('/');
   document.documentElement.lang = S.lang === 'zh' ? 'zh-CN' : 'en';
-  document.title = S.lang === 'zh' ? 'ReStart90｜把生活还给自己' : 'ReStart90 — Take your life back.';
+  document.title = S.lang === 'zh' ? 'ReStart90｜九十天重生 · 把生活还给自己' : 'ReStart90 — Take your life back';
   document.body.classList.toggle('why-on', S.why);
+  document.body.classList.toggle('is-home', !view);
   try {
+    if (view === 'account') { header('account'); demobar(false); return showAccount(document.getElementById('app'), ''); }
+    if (view === 'profiles') { header('profiles'); demobar(false); return await showProfiles(document.getElementById('app'), ''); }
+    if (view === 'join') { header('account'); demobar(false); return await showJoin(document.getElementById('app'), '', id); }
     if (!view) return await viewLanding();
     if (view === 'start') return viewStart();
     if (view === 'why') return viewWhy();
@@ -1264,9 +1502,14 @@ async function render() {
     if (view === 'map') return await viewMap(id || S.pid);
     return await viewLanding();
   } catch (e) {
-    if (e === STALE) return;
+    if (e === STALE || e.stale) return;
+    if (e.status === 401) {
+      await refreshAccount();
+      if ((location.hash || '#/') !== renderHash) return;
+      if (!accountState().user) { header('account'); demobar(false); rememberAccountTarget('#/profiles'); return showAccount(document.getElementById('app'), ''); }
+    }
     document.getElementById('app').innerHTML = `<div class="page"><div class="wrap"><p class="banner red">${esc(t('loadErr', { e: e.message }))}</p><a class="btn" href="#/p/demo-lin">${t('heroDemo')}</a></div></div>`;
-  }
+  } finally { if ((location.hash || '#/') === renderHash) { applyWorkspace(view, S); applyPrivateUI(); syncVisuals(); updateRiri(); } }
 }
 
 const rerender = async () => {
@@ -1277,10 +1520,12 @@ const rerender = async () => {
 
 // Route changes get a view transition: the user sees where they came from and where they are.
 function navigate() {
+  const intendedHash = location.hash || '#/';
+  contextGeneration++; patientGeneration++; agentGeneration++;
   S.ui.after = {}; S.ui.tip = {}; S.ui.ckResult = ''; S.ui.ckEdit = false; S.ui.agent = null;
   let ran = false;
   const go = () => {
-    if (ran) return undefined;
+    if (ran || (location.hash || '#/') !== intendedHash) { ran = true; return undefined; }
     ran = true;
     return render().then(() => window.scrollTo(0, 0));
   };
@@ -1318,7 +1563,8 @@ function showCheckinResult(r) {
 const actions = {
   lang: () => { S.lang = S.lang === 'zh' ? 'en' : 'zh'; localStorage.setItem('rs90.lang', S.lang); rerender(); },
   why: () => { S.why = !S.why; localStorage.setItem('rs90.why', S.why ? '1' : '0'); rerender(); },
-  'use-demo': () => { S.pid = 'demo-lin'; },
+  'use-demo': () => { selectPatient('demo-lin'); },
+  'scroll-to': (el, ev) => { ev.preventDefault(); const target = document.getElementById(el.dataset.target); for (let parent = target?.parentElement; parent; parent = parent.parentElement) if (parent.tagName === 'DETAILS') parent.open = true; target?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); },
   'to-story': (el, ev) => { ev.preventDefault(); document.getElementById('story')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); },
   hl(el) {
     const box = el.closest('.hl');
@@ -1327,7 +1573,7 @@ const actions = {
     box.outerHTML = next;
     document.querySelector(`.hl [data-act="hl"][data-n="${n}"]`)?.focus();
   },
-  pick: (el) => { S.pid = el.dataset.id; },
+  pick: (el) => { selectPatient(el.dataset.id); },
   async log(el) {
     const { task: taskId, status } = el.dataset;
     const r = await api(`/patients/${S.pid}/logs`, { taskId, status });
@@ -1370,31 +1616,57 @@ const actions = {
     toast(t('saved'));
     await rerender();
   },
+  async 'riri-toggle'(el, ev) {
+    ev?.preventDefault();
+    if (!S.ui.ririOpen && (!S.data || S.dataPid !== S.pid)) await loadPatient(S.pid);
+    S.ui.ririOpen = !S.ui.ririOpen;
+    updateRiri();
+    if (S.ui.ririOpen) {
+      if (window.matchMedia('(max-width: 680px)').matches) document.querySelector('.riri-close')?.focus({ preventScroll: true });
+      else document.getElementById('float-ag-text')?.focus();
+    }
+  },
   async agent(el) {
     const intent = el.dataset.intent;
-    S.ui.agent = { intent, text: S.ui.agent?.intent === intent ? S.ui.agent.text : '' };
-    if (intent === 'today' || intent === 'cant') S.ui.agent.res = await api(`/patients/${S.pid}/agent`, { intent, taskId: el.dataset.task || undefined });
+    agentGeneration++;
+    const context = chatContext();
+    S.ui.agent = { intent, text: '' };
+    if (intent === 'today' || intent === 'cant') {
+      const res = await chatRequest(context, `/patients/${context.pid}/agent`, {intent,taskId:el.dataset.task || undefined,lang:S.lang});
+      saveChat(t(intent === 'today' ? 'agToday' : 'agCant'),res,context);
+      S.ui.agent.res = res;
+    }
     await rerender();
+    document.getElementById(S.ui.ririOpen ? 'float-ag-text' : 'ag-text')?.focus();
   },
-  async 'agent-send'() {
-    const text = document.getElementById('ag-text').value;
-    if (!text.trim()) return document.getElementById('ag-text').focus();
-    const { intent } = S.ui.agent;
-    S.ui.agent = { intent, text, res: await api(`/patients/${S.pid}/agent`, { intent, text }) };
+  async 'agent-send'(el) {
+    const input = document.getElementById(el.dataset.src || 'ag-text');
+    const text = input?.value.trim();
+    if (!text) return input?.focus();
+    agentGeneration++;
+    const context = chatContext();
+    S.ui.agent ||= {};
+    const res = await chatRequest(context, `/patients/${context.pid}/agent`, {text,lang:S.lang,history:chatHistory(context).slice(-8)});
+    saveChat(text,res,context);
+    S.ui.agent = { text:'',res,recordText:text };
     await rerender();
   },
   async 'agent-do'(el) {
+    const context = chatContext();
+    await loadPatient(context.pid);
+    assertChat(context);
     const a = S.ui.agent;
+    if (!a?.res) return;
     const what = el.dataset.do;
     if (what === 'smaller') {
-      await api(`/patients/${S.pid}/logs`, { taskId: el.dataset.task, status: 'cant' });
+      await chatRequest(context, `/patients/${context.pid}/logs`, { taskId: el.dataset.task, status: 'cant' });
       a.done = t('saved');
     } else if (what === 'share') {
-      await api(`/patients/${S.pid}/notes`, { role: 'patient', text: a.text, private: true });
+      await chatRequest(context, `/patients/${context.pid}/notes`, { role: 'patient', text: a.recordText || a.text, private: true });
       a.done = t('agShared');
     } else if (what === 'report') {
       const last = S.data.checkins.at(-1);
-      const r = await api(`/patients/${S.pid}/checkin`, { pain: S.data.checkin?.pain ?? last?.pain ?? S.data.baselinePain, mood: S.data.checkin?.mood ?? 3, wound: 'normal', symptoms: a.res.signals || [], note: a.text });
+      const r = await chatRequest(context, `/patients/${context.pid}/checkin`, { pain: S.data.checkin?.pain ?? last?.pain ?? S.data.baselinePain, mood: S.data.checkin?.mood ?? 3, wound: 'normal', symptoms: a.res.signals || [], note: a.recordText || a.text });
       showCheckinResult(r);
       a.done = t('agReported');
     }
@@ -1410,11 +1682,15 @@ const actions = {
     await navigator.clipboard?.writeText(document.getElementById(el.dataset.target).textContent).catch(() => {});
     toast(t('copied'));
   },
-  'ck-edit': () => { S.ui.ckEdit = true; S.ui.ck = null; S.ui.ckResult = ''; rerender(); },
+  'ck-edit': () => { S.ui.ckEdit = true; S.ui.ck = null; S.ui.ckScope = draftScope(); S.ui.ckResult = ''; rerender(); },
   'ck-wound': (el) => { S.ui.ck.wound = el.dataset.v; rerender(); },
   'ck-mood': (el) => { S.ui.ck.mood = Number(el.dataset.v); rerender(); },
   async checkin() {
-    const r = await api(`/patients/${S.pid}/checkin`, S.ui.ck);
+    if (!S.ui.ck || S.dataPid !== S.pid || S.ui.ckScope !== draftScope()) return;
+    const context = chatContext();
+    const r = await api(`/patients/${context.pid}/checkin`, { ...S.ui.ck, symptoms:[...S.ui.ck.symptoms] });
+    assertContext(context);
+    if (context.day !== recordDay()) throw STALE;
     showCheckinResult(r);
     S.ui.ck = null;
     S.ui.ckEdit = false;
@@ -1440,28 +1716,44 @@ const actions = {
   async reset() {
     if (!confirm(t('resetConfirm'))) return;
     await api('/demo/reset', {});
-    S.pid = 'demo-lin';
+    selectPatient('demo-lin');
     S.ui = {};
     if (location.hash === '#/p/demo-lin') await rerender();
     else location.hash = '#/p/demo-lin';
   },
   review: (el) => { S.ui.review = { type: el.dataset.type, index: Number(el.dataset.index) }; renderReview(S.pid); },
   async 'save-review'(el) {
-    await api(`/patients/${S.pid}/review`, { period: el.dataset.period, role: el.dataset.role, text: document.getElementById(`rv-${el.dataset.role}`).value });
+    const root = el.closest('#review');
+    const id = el.dataset.patientId;
+    const [, view, routeId] = (location.hash || '#/').split('/');
+    const selected = root?.querySelector('[data-review-picker]')?.value.replace(':', '');
+    if (!root || root.getAttribute('aria-busy') === 'true' || !id || id !== root.dataset.patientId
+      || id !== S.pid || id !== S.dataPid || view !== 'map' || (routeId && routeId !== id)
+      || el.dataset.period !== selected || el.dataset.period !== root.dataset.period) {
+      toast(S.lang === 'zh' ? '档案或复盘时段正在切换，请读取完成后再保存。' : 'The profile or period is changing. Save after the review finishes loading.');
+      return;
+    }
+    if (S.data?.private && el.dataset.role !== (S.data.accessRole || S.data.access?.role)) return toast(S.lang === 'zh' ? '只能保存当前授权角色的复盘。' : 'Save only your authorized role’s review.', true);
+    await api(`/patients/${encodeURIComponent(id)}/review`, { period: el.dataset.period, role: el.dataset.role, text: document.getElementById(`rv-${el.dataset.role}`).value });
     toast(t('saved'));
   },
   'wz-sample': () => { S.wizard.text = S.meta.sample[S.lang]; S.wizard.pdf = null; S.wizard.fileName = ''; viewStart(); },
   async 'wz-extract'() {
     const w = S.wizard;
+    const context = requestContext();
+    const current = () => { assertContext(context); if (S.wizard !== w) throw STALE; };
     w.text = document.getElementById('wz-text').value;
     if (!w.text.trim() && !w.pdf) return document.getElementById('wz-text').focus();
     S.ui.extracting = true; viewStart();
     try {
-      w.result = await api('/extract', { text: w.text || undefined, pdfBase64: w.pdf || undefined, lang: S.lang });
+      const result = await api('/extract', { text: w.text || undefined, pdfBase64: w.pdf || undefined, lang: S.lang });
+      current();
+      w.result = result;
       w.confirm = {};
       w.form.name = w.result.name || '';
       w.step = 2;
-    } finally { S.ui.extracting = false; viewStart(); }
+    } catch (error) { current(); throw error; }
+    finally { try { current(); S.ui.extracting = false; viewStart(); } catch (error) { if (error !== STALE) throw error; } }
   },
   'wz-focus': (el) => { S.ui.activeField = el.dataset.key; viewStart(); document.getElementById(`q-${el.dataset.key}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); },
   'wz-confirm': (el) => { S.wizard.confirm[el.dataset.key] = el.checked; viewStart(); },
@@ -1475,8 +1767,11 @@ const actions = {
   },
   async 'wz-create'() {
     const w = S.wizard, r = w.result;
+    const context = requestContext();
     const extraction = { ...r, name: w.form.name || r.name, fields: r.fields.map((f) => ({ ...f, confirmed: !!w.confirm[f.key] })) };
-    const { id } = await api('/patients', { extraction, form: { ...w.form, nameEn: w.form.name } });
+    const { id } = await api('/patients', { extraction, form: { ...w.form, nameEn: w.form.name }, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+    assertContext(context);
+    if (S.wizard !== w) throw STALE;
     S.wizard = null;
     toast(t('created'));
     location.hash = `#/p/${id}`;
@@ -1505,7 +1800,7 @@ document.addEventListener('input', (ev) => {
     S.ui.ck[el.dataset.ck] = el.type === 'checkbox' ? el.checked : el.type === 'range' ? Number(el.value) : el.value;
     if (el.dataset.ck === 'pain') document.getElementById('painv').textContent = el.value;
   }
-  if (el.id === 'ag-text' && S.ui.agent) S.ui.agent.text = el.value;
+  if (el.id === 'ag-text' || el.id === 'float-ag-text') { S.ui.agent ||= {}; S.ui.agent.text = el.value; }
   if (el.dataset.ckSym && S.ui.ck) {
     const s = new Set(S.ui.ck.symptoms);
     if (el.checked) s.add(el.dataset.ckSym); else s.delete(el.dataset.ckSym);
@@ -1526,24 +1821,35 @@ document.addEventListener('change', async (ev) => {
   const el = ev.target;
   if (el.id !== 'wz-file' || !el.files[0]) return;
   const file = el.files[0];
-  S.wizard.fileName = file.name;
-  if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-    const buf = new Uint8Array(await file.arrayBuffer());
-    let bin = '';
-    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-    S.wizard.pdf = btoa(bin);
-    S.wizard.text = '';
-  } else {
-    S.wizard.text = await file.text();
-    S.wizard.pdf = null;
+  const wizard = S.wizard, context = requestContext();
+  if (!wizard) return;
+  const generation = wizard.uploadGeneration = (wizard.uploadGeneration || 0) + 1;
+  try {
+    let text = '', pdf = null;
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      pdf = btoa(bin);
+    } else text = await file.text();
+    assertContext(context);
+    if (S.wizard !== wizard || wizard.uploadGeneration !== generation) return;
+    Object.assign(wizard, { fileName: file.name, text, pdf });
+    viewStart();
+  } catch (error) {
+    if (error !== STALE) { try { assertContext(context); toast(error.message, true); } catch {} }
   }
-  viewStart();
 });
 
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && S.ui.ririOpen) { S.ui.ririOpen=false; updateRiri(); }
+  if (ev.key === 'Enter' && !ev.shiftKey && ['ag-text','float-ag-text'].includes(ev.target.id)) { ev.preventDefault(); ev.target.closest('.chat-composer').querySelector('button').click(); }
+});
 window.addEventListener('hashchange', navigate);
 
 (async function init() {
   try {
+    await refreshAccount();
     S.meta = await api('/meta');
   } catch (e) {
     document.getElementById('app').innerHTML = `<div class="page"><div class="wrap"><p class="banner red">${esc(e.message)}</p></div></div>`;
@@ -1551,3 +1857,40 @@ window.addEventListener('hashchange', navigate);
   }
   render();
 })();
+
+// Keep the existing review API and note fields; only the period selector is simpler.
+document.addEventListener('change', async event => {
+  const select = event.target.closest?.('[data-review-picker]');
+  if (!select) return;
+  const [type, index] = select.value.split(':');
+  S.ui.review = { type, index: Number(index) };
+  try { await renderReview(S.pid); } catch (error) { if (error !== STALE) toast(error.message, true); }
+});
+
+
+function applyPrivateUI() {
+  const d = S.data;
+  if (!d?.private || S.dataPid !== S.pid) return;
+  const role = d.accessRole || d.access?.role;
+  document.querySelectorAll('#review [id^="rv-"]').forEach(input => { input.disabled = input.id !== `rv-${role}`; });
+  document.querySelectorAll('#review [data-act="save-review"]').forEach(button => { button.disabled = button.dataset.role !== role; });
+  const [, view, id] = (location.hash || '#/').split('/');
+  if (id !== S.pid || !['p','f','r','map'].includes(view)) return;
+  mountParticipants(d);
+  const head = document.querySelector('.page .head');
+  if (head && !document.querySelector('.private-context')) {
+    const note = document.createElement('p'); note.className='private-context';
+    note.textContent = S.lang === 'zh' ? '私人档案 · 按账号授权访问 · 记录日按实际日期推进，非术后医学分期。' : 'Private record · Account-authorized access · Record days follow actual dates, not postoperative clinical stages.';
+    head.after(note);
+  }
+}
+configureAccounts({
+  go: target => { if (location.hash === target) render(); else location.hash = target; },
+  onUserChange: user => {
+    const sameAccount = localStorage.getItem('rs90.lastAccount') === (user?.openId || '');
+    contextGeneration++; patientGeneration++; agentGeneration++;
+    if (!sameAccount) S.pid='demo-lin';
+    localStorage.setItem('rs90.pid',S.pid); S.data=null; S.dataPid=null; S.wizard=null; S.ui={};
+    localStorage.setItem('rs90.lastAccount',user?.openId||'');
+  }
+});

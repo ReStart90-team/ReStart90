@@ -1,15 +1,15 @@
-# ReStart90 — Take your life back.
+# ReStart90 — Take your life back
 
 [中文说明](README.zh.md) · [Design rationale (Chinese)](DESIGN.md)
 
-> **Judges — start here.** The entry points that matter are not this README.
+> **Judges — start here.**
 >
 > - **Live site:** https://restart90-gruup9wi.manus.space/
-> - **Verified live source + integrity manifest:** `ReStart90_Verified_Source_20261115.zip`, `VERIFIED_VERSION_20261115.md`
-> - **Submission package** (one-page brief, launch film, readable source PDF): `SUBMISSION_README.md`
-> - **Repository root** is the historical V0.2 prototype (Express + SQLite + Anthropic adapter). The deployed site runs the dated archive above, so read `VERIFIED_VERSION_20261115.md` before judging the root.
+> - **Submission package:** `SUBMISSION_README.md` — one-page brief, launch film, readable source PDF
+> - **Integrity manifest:** `VERIFIED_VERSION_20261115.md` — commit, archive SHA-256, what was verified
+> - **This repository is the deployed source.** `npm ci && npm start`, open `http://localhost:3090`. No key required: without `DEEPSEEK_API_KEY` Riri labels itself as an offline demo and the deterministic red-flag rules stay in control.
 >
-> The quickest local run: `npm ci && npm start` — no key needed, it falls back to offline rules and synthetic data.
+> The launch film is committed at the repo root as `ReStart90_Launch_Film_V2.mp4`; copy it to `public/assets/restart90-launch-film.mp4` to play it locally.
 
 ReStart90 helps people who have just come home after a lower-limb amputation, and their families, hand daily life back to the patient over 90 days. Every daily ability moves through four levels:
 
@@ -105,3 +105,23 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch and pull-request workflow 
 ## License
 
 [MIT](LICENSE)
+
+## Visual enhancement and open Riri conversation
+
+The supplied complete V0.2 application remains the functional baseline. The patient, family, rehabilitation, 90-day map, daily logs, reviews, onboarding and deterministic safety rules keep their existing routes and SQLite schema. Independent `motion.css`, `motion.js` and `galaxy.js` add the dark visual system and local Three.js interaction without blocking controls.
+
+The public copy is **Take your life back.** and **Start on your own.** Riri uses the supplied character. Free chat keeps the original agent route with `{text,lang,history}` (`history` entries: `{role,text}`); the four doors are shortcuts, not the only accepted inputs. Chat does not silently mark tasks complete; record/help actions reuse explicit confirmation.
+
+Use server-only variables from `.env.example`: `MODEL_PROVIDER=deepseek`, `DEEPSEEK_API_KEY`, `DEEPSEEK_BASE_URL`, and `DEEPSEEK_MODEL`. Missing credentials, timeouts and failures return labeled demo replies. Red flags run before generation; Riri never diagnoses, changes medication, changes orders or judges wounds. Text PDFs use `pdftotext` (`poppler-utils`) before the existing confirmation flow; scanned files return an honest unreadable-document response.
+
+Final film production is not included. The independent second-screen stage supports local video playback, muted by default, native fullscreen and optional VTT subtitles; media is not uploaded or permanently stored.
+
+Enhanced-version command: `npm ci`, then `HOST=0.0.0.0 PORT=3000 npm start`; `npm test` covers the medical rules, authentication, persistence and frontend isolation regressions. Fonts and Three.js are served locally. The original browser-local synthetic demo retains instance-local SQLite and seven-day idle cleanup; signed-in private profiles use the separate persistent storage described below and are not affected by demo reset.
+
+## Phone/password private accounts
+
+The enhanced version has genuine phone/password accounts (no SMS verification). Phone numbers are unverified login names. Passwords are salted scrypt hashes, sessions are HttpOnly cookies, and the owner must preserve the one-time recovery code. Use the standalone HTTPS site for cross-device login; third-party cookie policies may block embedded Preview sessions.
+
+Configure `RESTART90_DATA_SECRET` only through protected environment settings (at least 32 bytes; recommended 64 random hex characters), with the same stable value in development and production. Never commit or log it. Existing data requires a re-encryption migration before key rotation. Managed `DATABASE_URL` supplies persistent MySQL. `node scripts/init-accounts.js` performs additive preparation without account seeds or data deletion. Private access fails closed when preparation is unavailable.
+
+The original medical engine is preserved through encrypted single-case SQLite snapshots stored durably in MySQL. Account ownership and invited family/rehab roles are enforced server-side. Same-account sessions read the same records across devices. Private chats are scoped to account and case. Professional credentials are not verified, and clinical templates still require professional review. Public synthetic browser demos remain separate and expire; they are not silently imported into private accounts. Private calendar days are recording days, not claims of postoperative clinical stages. No automatic SMS/phone notifications are implied.
