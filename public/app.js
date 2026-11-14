@@ -26,7 +26,7 @@ const T = {
   whyBtn: ['设计依据', 'Design rationale'],
 
   // landing
-  heroTitle: ['把生活<br>还给自己。', 'Give life back<br>to yourself.'],
+  heroTitle: ['把生活<br>还给自己。', 'Take your life<br>back.'],
   heroLead: ['从出院第 1 天到第 90 天，ReStart90 把医嘱变成患者、家属和康复人员今天各自要做的事，一项一项把生活交还给患者。', 'From day 1 home to day 90, ReStart90 turns the doctor’s orders into what the patient, family and rehab team each do today, handing life back one task at a time.'],
   heroDemo: ['看看林凯的第 9 天', 'See Kai Lin’s day 9'],
   heroStart: ['上传出院医嘱', 'Upload discharge orders'],
@@ -1252,7 +1252,7 @@ async function loadPatient(id, role) {
 async function render() {
   const [, view, id] = (location.hash || '#/').split('/');
   document.documentElement.lang = S.lang === 'zh' ? 'zh-CN' : 'en';
-  document.title = S.lang === 'zh' ? 'ReStart90｜把生活还给自己' : 'ReStart90 — Give life back to yourself';
+  document.title = S.lang === 'zh' ? 'ReStart90｜把生活还给自己' : 'ReStart90 — Take your life back.';
   document.body.classList.toggle('why-on', S.why);
   try {
     if (!view) return await viewLanding();

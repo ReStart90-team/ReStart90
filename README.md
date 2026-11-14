@@ -1,6 +1,15 @@
-# ReStart90 — Give life back to yourself
+# ReStart90 — Take your life back.
 
 [中文说明](README.zh.md) · [Design rationale (Chinese)](DESIGN.md)
+
+> **Judges — start here.** The entry points that matter are not this README.
+>
+> - **Live site:** https://restart90-gruup9wi.manus.space/
+> - **Verified live source + integrity manifest:** `ReStart90_Verified_Source_20261115.zip`, `VERIFIED_VERSION_20261115.md`
+> - **Submission package** (one-page brief, launch film, readable source PDF): `SUBMISSION_README.md`
+> - **Repository root** is the historical V0.2 prototype (Express + SQLite + Anthropic adapter). The deployed site runs the dated archive above, so read `VERIFIED_VERSION_20261115.md` before judging the root.
+>
+> The quickest local run: `npm ci && npm start` — no key needed, it falls back to offline rules and synthetic data.
 
 ReStart90 helps people who have just come home after a lower-limb amputation, and their families, hand daily life back to the patient over 90 days. Every daily ability moves through four levels:
 

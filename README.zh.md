@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-把生活还给自己。Give life back to yourself.
+把生活还给自己。Take your life back.
 
 ReStart90 帮助刚出院的下肢截肢患者和家属，用 90 天把生活一步一步交还给患者。每项生活能力分四级：家属替我做 → 家属陪我做 → 家属在旁保护 → 我自己能做到。
 
