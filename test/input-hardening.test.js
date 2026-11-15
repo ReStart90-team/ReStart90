@@ -51,6 +51,27 @@ test('createPatient rejects a missing or malformed form with 400', () => {
   assert.ok(E.createPatient(db, { form: { name: 'Test', goals: ['grooming'], home: {} } }).id);
 });
 
+test('a near-limit rehab note is accepted even though the stored note gets an ability-name prefix', () => {
+  const { db, id } = fresh();
+  E.adjustAbility(db, id, 'grooming', { action: 'up', note: 'a'.repeat(E.MAX_NOTE) });
+  assert.equal(E.levelsOf(db, id).grooming.level, 2);
+});
+
+test('discharge dates must be real calendar dates; bad stored dates never break reads', () => {
+  const db = openDb(':memory:');
+  for (const bad of ['garbage', '2026-13-45', '2026-02-30', { a: 1 }]) {
+    assert.throws(() => E.createPatient(db, { form: { dischargeDate: bad, home: {} } }), status(400));
+  }
+  // Model/regex-extracted dates that are not real dates fall back instead of failing.
+  const { id } = E.createPatient(db, { extraction: { dischargeDate: '2026/10/14', surgeryDate: 'soon' }, form: { dischargeDate: '2026-10-20', home: {} } });
+  const st = E.patientState(db, id);
+  assert.equal(st.profile.dischargeDate, '2026-10-20');
+  assert.equal(st.profile.surgeryDate, '');
+  // A record already holding a bad date (written before this check) still loads.
+  db.prepare('UPDATE patients SET profile = json_set(profile, \'$.dischargeDate\', \'garbage\') WHERE id = ?').run(id);
+  assert.ok(E.patientState(db, id));
+});
+
 test('server answers malformed URLs and bodies with 4xx, never 500', async (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'restart90-hardening-'));
   const port = 41000 + Math.floor(Math.random() * 9000);

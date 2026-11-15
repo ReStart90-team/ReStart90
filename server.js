@@ -125,7 +125,6 @@ function sandboxOf(req, res) {
   const raw = (req.headers.cookie || '').split(/;\s*/).find((c) => c.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
   let token = raw && TOKEN_RE.test(raw) ? raw : null;
   if (!token) {
-    if (++createdSinceSweep >= SWEEP_EVERY) sweepSandboxes();
     token = crypto.randomBytes(12).toString('base64url');
     const secure = req.headers['x-forwarded-proto'] === 'https';
     res.setHeader('Set-Cookie', `${COOKIE}=${token}; Path=/; Max-Age=${SANDBOX_DAYS * 86400}; SameSite=${secure ? 'None' : 'Lax'}; HttpOnly${secure ? '; Secure' : ''}`);
@@ -133,7 +132,11 @@ function sandboxOf(req, res) {
   const now = Date.now();
   if (now - (seen.get(token) || 0) > 60_000) {
     seen.set(token, now);
-    db.prepare("INSERT INTO sandboxes (token) VALUES (?) ON CONFLICT(token) DO UPDATE SET last_seen = datetime('now')").run(token);
+    // Count rows actually created, not missing cookies: a client can also invent
+    // a fresh, valid-looking token on every request.
+    if (db.prepare('INSERT OR IGNORE INTO sandboxes (token) VALUES (?)').run(token).changes) {
+      if (++createdSinceSweep >= SWEEP_EVERY) sweepSandboxes();
+    } else db.prepare("UPDATE sandboxes SET last_seen = datetime('now') WHERE token = ?").run(token);
   }
   return token;
 }
@@ -432,11 +435,16 @@ const badRequest = () => E.httpError(400, '请求格式错误', 'Bad request');
 function decode(value) {
   try { return decodeURIComponent(value); } catch { throw badRequest(); }
 }
-// The proxy in front of the app appends the address it saw, so the LAST entry is
-// the one a client cannot forge; the first entry is whatever the client sent.
+// X-Forwarded-For is only meaningful when a proxy on a private or loopback
+// address connected to us; a client reaching the server directly can write any
+// value. When a proxy is in front, it appends the address it saw, so the LAST
+// entry is the one a client cannot forge (the first is whatever the client sent).
+const PRIVATE_PEER = /^(?:::ffff:)?(?:127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|169\.254\.)|^::1$|^f[cd][0-9a-f]{2}:|^fe80:/i;
 function clientIp(req) {
+  const peer = req.socket.remoteAddress || '';
+  if (!PRIVATE_PEER.test(peer)) return peer;
   const hops = String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean);
-  return hops.at(-1) || req.socket.remoteAddress;
+  return hops.at(-1) || peer;
 }
 
 const server = http.createServer(async (req, res) => {
