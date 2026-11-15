@@ -115,11 +115,17 @@ const TOKEN_RE = /^[A-Za-z0-9_-]{16}$/;
 const SANDBOX_DAYS = 7;
 const MAX_SANDBOXES = 5000;
 const seen = new Map(); // token -> last write time, so last_seen is written at most once a minute
+// Each cookieless request mints a sandbox (~20 KB once seeded). Enforce the cap as
+// sandboxes are created, not only in the hourly sweep: otherwise one client
+// looping without cookies can write hundreds of thousands of them an hour.
+const SWEEP_EVERY = 250;
+let createdSinceSweep = 0;
 
 function sandboxOf(req, res) {
   const raw = (req.headers.cookie || '').split(/;\s*/).find((c) => c.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
   let token = raw && TOKEN_RE.test(raw) ? raw : null;
   if (!token) {
+    if (++createdSinceSweep >= SWEEP_EVERY) sweepSandboxes();
     token = crypto.randomBytes(12).toString('base64url');
     const secure = req.headers['x-forwarded-proto'] === 'https';
     res.setHeader('Set-Cookie', `${COOKIE}=${token}; Path=/; Max-Age=${SANDBOX_DAYS * 86400}; SameSite=${secure ? 'None' : 'Lax'}; HttpOnly${secure ? '; Secure' : ''}`);
@@ -208,6 +214,7 @@ function assertPrivateWrite(req, pathname, access, calendar) {
 }
 
 function sweepSandboxes() {
+  createdSinceSweep = 0;
   const old = db.prepare(`SELECT token FROM sandboxes WHERE last_seen < datetime('now', '-${SANDBOX_DAYS} days')
     UNION SELECT token FROM (SELECT token FROM sandboxes ORDER BY last_seen DESC LIMIT -1 OFFSET ${MAX_SANDBOXES})`).all().map((r) => r.token);
   for (const t of old) {
@@ -223,9 +230,12 @@ setInterval(sweepSandboxes, 3600_000).unref();
 // ---------- AI rate limit (only matters when a model key is configured) ----------
 // Past the limit the call still works, just with the offline rules and pregenerated results.
 const AI_LIMIT = Number(process.env.RESTART90_AI_LIMIT) || 40; // model calls per visitor IP per hour
+const AI_TRACKED_IPS = 20000;
 const aiHits = new Map();
 function aiOffline(ip) {
   const now = Date.now();
+  // Bounded memory: if the table is full of distinct addresses, fail to offline mode.
+  if (!aiHits.has(ip) && aiHits.size >= AI_TRACKED_IPS) return true;
   const hits = (aiHits.get(ip) || []).filter((t) => now - t < 3600_000);
   const over = hits.length >= AI_LIMIT;
   if (!over) hits.push(now);
@@ -312,6 +322,7 @@ route('POST', '/api/patients/:id/logs', ({ params, body }) => E.logTask(db, para
 route('POST', '/api/patients/:id/plan', ({ params, body }) => E.logPlan(db, params.id, body));
 route('POST', '/api/patients/:id/help', ({ params, body }) => E.logHelp(db, params.id, body));
 route('POST', '/api/patients/:id/checkin', async ({ params, body, ip }) => {
+  E.optText(body.note); // validate before any model call sees the note
   const parsed = await parseNote(body.note || '', { offline: !body.note || aiOffline(ip) });
   return { ...E.checkin(db, params.id, body, parsed), parsed };
 });
@@ -348,6 +359,7 @@ route('POST', '/api/patients/:id/agent', async ({ params, body, ip, access, user
     const input = access && !isRiriIntent(body.intent) ? { ...body, text: body.text || '请说明我的授权角色可以做什么', intent: 'chat' } : body;
     return ririReply(db, params.id, input, { offline: aiOffline(ip), role: access?.role || 'patient', private: !!access });
   }
+  E.optText(body.text); // validate before any model call sees the text
   const needsParse = ['normal', 'talk'].includes(body.intent);
   const offline = needsParse && aiOffline(ip);
   const parsed = needsParse ? await parseNote(body.text || '', { offline }) : null;
@@ -380,6 +392,7 @@ function serveVendor(res, pathname) {
 }
 
 function serveStatic(req, res, pathname) {
+  if (pathname.includes('\0')) return send(res, 400, { error: 'bad request' });
   if (pathname.startsWith('/vendor/')) return serveVendor(res, pathname);
   const file = path.normalize(path.join(PUBLIC, pathname === '/' ? 'index.html' : pathname));
   if (!file.startsWith(`${PUBLIC}${path.sep}`)) return send(res, 403, { error: 'forbidden' });
@@ -415,20 +428,33 @@ function readBody(req, limit = 15 * 1024 * 1024) {
   });
 }
 
+const badRequest = () => E.httpError(400, '请求格式错误', 'Bad request');
+function decode(value) {
+  try { return decodeURIComponent(value); } catch { throw badRequest(); }
+}
+// The proxy in front of the app appends the address it saw, so the LAST entry is
+// the one a client cannot forge; the first entry is whatever the client sent.
+function clientIp(req) {
+  const hops = String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+  return hops.at(-1) || req.socket.remoteAddress;
+}
+
 const server = http.createServer(async (req, res) => {
   try {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    if (!url.pathname.startsWith('/api/')) return serveStatic(req, res, decodeURIComponent(url.pathname));
+    let url;
+    // A malformed Host header is a client error, not a server failure.
+    try { url = new URL(req.url, 'http://localhost'); } catch { throw badRequest(); }
+    if (!url.pathname.startsWith('/api/')) return serveStatic(req, res, decode(url.pathname));
     const r = routes.find((x) => x.method === req.method && x.re.test(url.pathname));
     if (!r) return send(res, 404, { error: 'Not found', i18n: { zh: '接口不存在', en: 'Not found' } });
     if (url.pathname.startsWith('/api/account/') || url.pathname === '/api/invites/accept' || (req.method === 'POST' && url.pathname === '/api/patients')) res.setHeader('Cache-Control', 'no-store');
     const m = url.pathname.match(r.re);
     const sb = sandboxOf(req, res);
-    const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1])]));
+    const params = Object.fromEntries(r.keys.map((k, i) => [k, decode(m[i + 1])]));
     // Only the discharge-summary upload may carry a PDF; everything else is small JSON.
     const body = req.method === 'POST' ? await readBody(req, url.pathname === '/api/extract' ? 15 * 1024 * 1024 : 256 * 1024) : {};
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw E.httpError(400, '请求必须是 JSON 对象', 'Request must be a JSON object');
-    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+    const ip = clientIp(req);
     const ctx = { params, query: url.searchParams, body, sb, ip, req, res };
     let out;
     const browserLocal = params.id && demoDb.prepare('SELECT 1 FROM patients WHERE id = ? AND sandbox = ?').get(params.id, sb);
